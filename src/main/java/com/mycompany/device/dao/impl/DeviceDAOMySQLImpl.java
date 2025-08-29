@@ -26,7 +26,7 @@ public class DeviceDAOMySQLImpl implements DeviceDAO {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """;
         
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             pstmt.setString(1, device.getDeviceId());
@@ -56,7 +56,7 @@ public class DeviceDAOMySQLImpl implements DeviceDAO {
             WHERE device_id = ?
         """;
         
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             pstmt.setString(1, device.getDeviceName());
@@ -82,7 +82,7 @@ public class DeviceDAOMySQLImpl implements DeviceDAO {
     public boolean deleteDevice(String deviceId) {
         String sql = "DELETE FROM devices WHERE device_id = ?";
         
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             pstmt.setString(1, deviceId);
@@ -100,7 +100,7 @@ public class DeviceDAOMySQLImpl implements DeviceDAO {
     public Optional<Device> findById(String deviceId) {
         String sql = "SELECT * FROM devices WHERE device_id = ?";
         
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             pstmt.setString(1, deviceId);
@@ -123,7 +123,7 @@ public class DeviceDAOMySQLImpl implements DeviceDAO {
         String sql = "SELECT * FROM devices ORDER BY device_id";
         List<Device> devices = new ArrayList<>();
         
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getInstance().getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             
@@ -146,7 +146,7 @@ public class DeviceDAOMySQLImpl implements DeviceDAO {
         String sql = "SELECT * FROM devices WHERE device_name LIKE ? ORDER BY device_name";
         List<Device> devices = new ArrayList<>();
         
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             pstmt.setString(1, "%" + deviceName + "%");
@@ -169,7 +169,7 @@ public class DeviceDAOMySQLImpl implements DeviceDAO {
         String sql = "SELECT * FROM devices WHERE device_type = ? ORDER BY device_name";
         List<Device> devices = new ArrayList<>();
         
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             pstmt.setString(1, deviceType);
@@ -192,7 +192,7 @@ public class DeviceDAOMySQLImpl implements DeviceDAO {
         String sql = "SELECT * FROM devices WHERE status = ? ORDER BY device_name";
         List<Device> devices = new ArrayList<>();
         
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             pstmt.setString(1, status.name());
@@ -216,7 +216,7 @@ public class DeviceDAOMySQLImpl implements DeviceDAO {
     public int getTotalDeviceCount() {
         String sql = "SELECT COUNT(*) FROM devices";
         
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getInstance().getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             
@@ -235,7 +235,7 @@ public class DeviceDAOMySQLImpl implements DeviceDAO {
     public int getDeviceCountByStatus(Device.DeviceStatus status) {
         String sql = "SELECT COUNT(*) FROM devices WHERE status = ?";
         
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             pstmt.setString(1, status.name());

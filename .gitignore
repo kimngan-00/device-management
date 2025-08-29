@@ -4,6 +4,19 @@
 # Log files
 *.log
 logs/
+log/
+*.log.*
+*.log.gz
+*.log.bz2
+*.log.tar
+*.log.tar.gz
+*.log.tar.bz2
+*.out
+*.err
+*.trace
+*.dump
+*.pid
+*.lock
 
 # BlueJ files
 *.ctxt
@@ -97,6 +110,26 @@ tmp/
 test-output/
 reports/
 coverage/
+
+# Logging and monitoring
+*.log.*
+*.log.gz
+*.log.bz2
+*.log.tar
+*.log.tar.gz
+*.log.tar.bz2
+*.out
+*.err
+*.trace
+*.dump
+*.pid
+*.lock
+*.tmp.log
+*.debug.log
+*.error.log
+*.info.log
+*.warn.log
+*.fatal.log
 
 # Node modules (if any frontend)
 node_modules/

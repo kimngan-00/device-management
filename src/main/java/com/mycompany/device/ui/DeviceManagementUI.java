@@ -45,7 +45,6 @@ public class DeviceManagementUI {
         System.out.print("Nhập username: ");
         String username = scanner.nextLine();
         
-        // Đăng nhập đơn giản - trong thực tế sẽ có authentication
         if ("admin".equals(username)) {
             currentUser = new User("ADM001", "admin", "Quản trị viên", User.UserRole.ADMIN);
         } else if ("manager".equals(username)) {

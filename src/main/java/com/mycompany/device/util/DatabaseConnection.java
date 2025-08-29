@@ -8,27 +8,40 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Utility class để quản lý kết nối database MySQL
- * @author Team Member 2 - Data Access Layer
+ * Singleton class để quản lý kết nối database MySQL
+ * @author Team Device Management
  */
 public class DatabaseConnection {
     
     private static final Logger logger = LoggerFactory.getLogger(DatabaseConnection.class);
-    private static final String CONFIG_FILE = "application.properties";
     
-    private static String url;
-    private static String username;
-    private static String password;
-    private static String driver;
+    // Singleton instance
+    private static DatabaseConnection instance;
     
-    static {
+    private String url;
+    private String username;
+    private String password;
+    private String driver;
+    
+    // Private constructor để ngăn tạo instance từ bên ngoài
+    private DatabaseConnection() {
         loadDatabaseConfig();
+    }
+    
+    /**
+     * Lấy instance duy nhất của DatabaseConnection (Singleton Pattern)
+     */
+    public static synchronized DatabaseConnection getInstance() {
+        if (instance == null) {
+            instance = new DatabaseConnection();
+        }
+        return instance;
     }
     
     /**
      * Load cấu hình database từ ConfigLoader
      */
-    private static void loadDatabaseConfig() {
+    private void loadDatabaseConfig() {
         try {
             // Sử dụng ConfigLoader để đọc cấu hình
             url = ConfigLoader.getDatabaseUrl();
@@ -46,7 +59,7 @@ public class DatabaseConnection {
     /**
      * Set cấu hình mặc định
      */
-    private static void setDefaultConfig() {
+    private void setDefaultConfig() {
         url = "jdbc:mysql://localhost:3306/device_management";
         username = "root";
         password = "";
@@ -56,7 +69,7 @@ public class DatabaseConnection {
     /**
      * Lấy kết nối database
      */
-    public static Connection getConnection() throws SQLException {
+    public Connection getConnection() throws SQLException {
         try {
             Class.forName(driver);
             Connection connection = DriverManager.getConnection(url, username, password);
@@ -74,7 +87,7 @@ public class DatabaseConnection {
     /**
      * Đóng kết nối database
      */
-    public static void closeConnection(Connection connection) {
+    public void closeConnection(Connection connection) {
         if (connection != null) {
             try {
                 connection.close();
@@ -88,7 +101,7 @@ public class DatabaseConnection {
     /**
      * Kiểm tra kết nối database
      */
-    public static boolean testConnection() {
+    public boolean testConnection() {
         try (Connection connection = getConnection()) {
             return connection != null && !connection.isClosed();
         } catch (SQLException e) {
@@ -100,7 +113,7 @@ public class DatabaseConnection {
     /**
      * Tạo database và tables nếu chưa tồn tại
      */
-    public static void initializeDatabase() {
+    public void initializeDatabase() {
         try {
             // Trước tiên kết nối đến MySQL server (không chỉ định database)
             String serverUrl = url.substring(0, url.lastIndexOf("/"));
@@ -123,7 +136,7 @@ public class DatabaseConnection {
     /**
      * Tạo database nếu chưa tồn tại
      */
-    private static void createDatabaseIfNotExists(Connection connection) throws SQLException {
+    private void createDatabaseIfNotExists(Connection connection) throws SQLException {
         String databaseName = "device_management";
         String createDatabaseSQL = "CREATE DATABASE IF NOT EXISTS " + databaseName + 
                                   " CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci";
@@ -137,7 +150,7 @@ public class DatabaseConnection {
     /**
      * Tạo các bảng cần thiết
      */
-    private static void createTables(Connection connection) throws SQLException {
+    private void createTables(Connection connection) throws SQLException {
         // Tạo bảng users
         String createUsersTable = """
             CREATE TABLE IF NOT EXISTS users (
@@ -184,7 +197,7 @@ public class DatabaseConnection {
             )
         """;
         
-        try (var stmt = connection.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             stmt.execute(createUsersTable);
             stmt.execute(createDevicesTable);
             stmt.execute(createDeviceHistoryTable);
@@ -193,8 +206,8 @@ public class DatabaseConnection {
     }
     
     // Getters cho cấu hình
-    public static String getUrl() { return url; }
-    public static String getUsername() { return username; }
-    public static String getPassword() { return password; }
-    public static String getDriver() { return driver; }
+    public String getUrl() { return url; }
+    public String getUsername() { return username; }
+    public String getPassword() { return password; }
+    public String getDriver() { return driver; }
 } 

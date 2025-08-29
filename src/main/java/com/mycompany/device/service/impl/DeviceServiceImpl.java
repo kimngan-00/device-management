@@ -1,8 +1,11 @@
 package com.mycompany.device.service.impl;
 
 import com.mycompany.device.dao.DeviceDAO;
-import com.mycompany.device.dao.impl.DeviceDAOMySQLImpl;
+import com.mycompany.device.dao.factory.DAOFactory;
 import com.mycompany.device.model.Device;
+import com.mycompany.device.model.DeviceBuilder;
+import com.mycompany.device.observer.DeviceObserver;
+import com.mycompany.device.observer.DeviceLogger;
 import com.mycompany.device.service.DeviceService;
 import com.mycompany.device.service.DeviceStatistics;
 import com.mycompany.device.util.DatabaseConnection;
@@ -19,15 +22,22 @@ public class DeviceServiceImpl implements DeviceService {
     
     private static final Logger logger = LoggerFactory.getLogger(DeviceServiceImpl.class);
     private final DeviceDAO deviceDAO;
+    private final List<DeviceObserver> observers;
     private int deviceCounter = 1;
     
     public DeviceServiceImpl() {
-        // Khởi tạo database
-        DatabaseConnection.initializeDatabase();
-        this.deviceDAO = new DeviceDAOMySQLImpl();
+        // Khởi tạo database sử dụng Singleton Pattern
+        DatabaseConnection.getInstance().initializeDatabase();
+        
+        // Sử dụng Factory Pattern để tạo DAO
+        this.deviceDAO = DAOFactory.createDeviceDAO();
+        
+        // Khởi tạo observers
+        this.observers = new ArrayList<>();
+        this.observers.add(new DeviceLogger()); // Thêm logger observer
         
         // Kiểm tra kết nối database
-        if (!DatabaseConnection.testConnection()) {
+        if (!DatabaseConnection.getInstance().testConnection()) {
             logger.error("Cannot connect to database. Please check your MySQL configuration.");
             throw new RuntimeException("Database connection failed");
         }
@@ -49,7 +59,16 @@ public class DeviceServiceImpl implements DeviceService {
             device.setStatus(Device.DeviceStatus.AVAILABLE);
         }
         
-        return deviceDAO.addDevice(device);
+        boolean success = deviceDAO.addDevice(device);
+        
+        // Observer Pattern: Thông báo cho observers
+        if (success) {
+            for (DeviceObserver observer : observers) {
+                observer.onDeviceAdded(device);
+            }
+        }
+        
+        return success;
     }
     
     @Override
@@ -68,7 +87,16 @@ public class DeviceServiceImpl implements DeviceService {
             Device device = deviceOpt.get();
             // Chỉ cho phép xóa thiết bị có trạng thái AVAILABLE
             if (device.getStatus() == Device.DeviceStatus.AVAILABLE) {
-                return deviceDAO.deleteDevice(deviceId);
+                boolean success = deviceDAO.deleteDevice(deviceId);
+                
+                // Observer Pattern: Thông báo cho observers
+                if (success) {
+                    for (DeviceObserver observer : observers) {
+                        observer.onDeviceDeleted(deviceId);
+                    }
+                }
+                
+                return success;
             } else {
                 return false; // Thiết bị đang được sử dụng, không thể xóa
             }
@@ -108,9 +136,19 @@ public class DeviceServiceImpl implements DeviceService {
         Optional<Device> deviceOpt = deviceDAO.findById(deviceId);
         if (deviceOpt.isPresent()) {
             Device device = deviceOpt.get();
+            String oldStatus = device.getStatus().name();
             device.setStatus(newStatus);
             
-            return deviceDAO.updateDevice(device);
+            boolean success = deviceDAO.updateDevice(device);
+            
+            // Observer Pattern: Thông báo cho observers
+            if (success) {
+                for (DeviceObserver observer : observers) {
+                    observer.onDeviceStatusChanged(device, oldStatus, newStatus.name());
+                }
+            }
+            
+            return success;
         }
         return false;
     }
@@ -178,43 +216,48 @@ public class DeviceServiceImpl implements DeviceService {
     }
     
     /**
-     * Khởi tạo dữ liệu mẫu
+     * Khởi tạo dữ liệu mẫu sử dụng Builder Pattern
      */
     private void initializeSampleData() {
-        // Thêm một số thiết bị mẫu
-        Device laptop1 = new Device("DEV000001", "Laptop Dell XPS 13", "Laptop");
-        laptop1.setDescription("Laptop cao cấp cho nhân viên IT");
-        laptop1.setPrice(25000000);
-        laptop1.setManufacturer("Dell");
-        laptop1.setSerialNumber("DL123456789");
+        // Sử dụng Builder Pattern để tạo thiết bị mẫu
+        Device laptop1 = DeviceBuilder.createLaptop("DEV000001", "Laptop Dell XPS 13")
+                .description("Laptop cao cấp cho nhân viên IT")
+                .price(25000000)
+                .manufacturer("Dell")
+                .serialNumber("DL123456789")
+                .build();
         deviceDAO.addDevice(laptop1);
         
-        Device printer1 = new Device("DEV000002", "Máy in HP LaserJet", "Máy in");
-        printer1.setDescription("Máy in laser đen trắng");
-        printer1.setPrice(3500000);
-        printer1.setManufacturer("HP");
-        printer1.setSerialNumber("HP987654321");
+        Device printer1 = DeviceBuilder.createPrinter("DEV000002", "Máy in HP LaserJet")
+                .description("Máy in laser đen trắng")
+                .price(3500000)
+                .manufacturer("HP")
+                .serialNumber("HP987654321")
+                .build();
         deviceDAO.addDevice(printer1);
         
-        Device monitor1 = new Device("DEV000003", "Màn hình Samsung 24\"", "Màn hình");
-        monitor1.setDescription("Màn hình LED 24 inch");
-        monitor1.setPrice(4500000);
-        monitor1.setManufacturer("Samsung");
-        monitor1.setSerialNumber("SM456789123");
+        Device monitor1 = DeviceBuilder.createMonitor("DEV000003", "Màn hình Samsung 24\"")
+                .description("Màn hình LED 24 inch")
+                .price(4500000)
+                .manufacturer("Samsung")
+                .serialNumber("SM456789123")
+                .build();
         deviceDAO.addDevice(monitor1);
         
-        Device phone1 = new Device("DEV000004", "Điện thoại iPhone 14", "Điện thoại");
-        phone1.setDescription("Điện thoại thông minh");
-        phone1.setPrice(18000000);
-        phone1.setManufacturer("Apple");
-        phone1.setSerialNumber("AP789123456");
+        Device phone1 = DeviceBuilder.createPhone("DEV000004", "Điện thoại iPhone 14")
+                .description("Điện thoại thông minh")
+                .price(18000000)
+                .manufacturer("Apple")
+                .serialNumber("AP789123456")
+                .build();
         deviceDAO.addDevice(phone1);
         
-        Device tablet1 = new Device("DEV000005", "iPad Pro 12.9\"", "Máy tính bảng");
-        tablet1.setDescription("Máy tính bảng cao cấp");
-        tablet1.setPrice(22000000);
-        tablet1.setManufacturer("Apple");
-        tablet1.setSerialNumber("AP321654987");
+        Device tablet1 = DeviceBuilder.create("DEV000005", "iPad Pro 12.9\"", "Máy tính bảng")
+                .description("Máy tính bảng cao cấp")
+                .price(22000000)
+                .manufacturer("Apple")
+                .serialNumber("AP321654987")
+                .build();
         deviceDAO.addDevice(tablet1);
     }
 } 

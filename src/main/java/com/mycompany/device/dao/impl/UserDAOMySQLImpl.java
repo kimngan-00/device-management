@@ -26,7 +26,7 @@ public class UserDAOMySQLImpl implements UserDAO {
             VALUES (?, ?, ?, ?, ?, ?, ?)
         """;
         
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             pstmt.setString(1, user.getUserId());
@@ -55,7 +55,7 @@ public class UserDAOMySQLImpl implements UserDAO {
             WHERE user_id = ?
         """;
         
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             pstmt.setString(1, user.getUsername());
@@ -81,7 +81,7 @@ public class UserDAOMySQLImpl implements UserDAO {
     public boolean deleteUser(String userId) {
         String sql = "DELETE FROM users WHERE user_id = ?";
         
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             pstmt.setString(1, userId);
@@ -99,7 +99,7 @@ public class UserDAOMySQLImpl implements UserDAO {
     public Optional<User> findById(String userId) {
         String sql = "SELECT * FROM users WHERE user_id = ?";
         
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             pstmt.setString(1, userId);
@@ -121,7 +121,7 @@ public class UserDAOMySQLImpl implements UserDAO {
     public Optional<User> findByUsername(String username) {
         String sql = "SELECT * FROM users WHERE username = ?";
         
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             pstmt.setString(1, username);
@@ -144,7 +144,7 @@ public class UserDAOMySQLImpl implements UserDAO {
         String sql = "SELECT * FROM users ORDER BY user_id";
         List<User> users = new ArrayList<>();
         
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getInstance().getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             
@@ -167,7 +167,7 @@ public class UserDAOMySQLImpl implements UserDAO {
         String sql = "SELECT * FROM users WHERE full_name LIKE ? ORDER BY full_name";
         List<User> users = new ArrayList<>();
         
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             pstmt.setString(1, "%" + fullName + "%");
@@ -190,7 +190,7 @@ public class UserDAOMySQLImpl implements UserDAO {
         String sql = "SELECT * FROM users WHERE department = ? ORDER BY full_name";
         List<User> users = new ArrayList<>();
         
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             pstmt.setString(1, department);
@@ -213,7 +213,7 @@ public class UserDAOMySQLImpl implements UserDAO {
         String sql = "SELECT * FROM users WHERE role = ? ORDER BY full_name";
         List<User> users = new ArrayList<>();
         
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             pstmt.setString(1, role.name());
@@ -235,7 +235,7 @@ public class UserDAOMySQLImpl implements UserDAO {
     public Optional<User> findByEmail(String email) {
         String sql = "SELECT * FROM users WHERE email = ?";
         
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             pstmt.setString(1, email);
@@ -258,7 +258,7 @@ public class UserDAOMySQLImpl implements UserDAO {
         String sql = "SELECT * FROM users WHERE is_active = TRUE ORDER BY full_name";
         List<User> users = new ArrayList<>();
         
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getInstance().getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             
@@ -278,7 +278,7 @@ public class UserDAOMySQLImpl implements UserDAO {
     public int getTotalUserCount() {
         String sql = "SELECT COUNT(*) FROM users";
         
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getInstance().getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             
@@ -297,7 +297,7 @@ public class UserDAOMySQLImpl implements UserDAO {
     public int getUserCountByRole(User.UserRole role) {
         String sql = "SELECT COUNT(*) FROM users WHERE role = ?";
         
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             pstmt.setString(1, role.name());
