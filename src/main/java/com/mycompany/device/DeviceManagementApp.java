@@ -10,11 +10,7 @@ import com.mycompany.device.util.ConfigLoader;
 public class DeviceManagementApp {
     
     public static void main(String[] args) {
-        System.out.println("=== " + ConfigLoader.getAppName() + " ===");
-        System.out.println("Phiên bản: " + ConfigLoader.getAppVersion());
-        System.out.println("Môi trường: " + ConfigLoader.getAppEnv());
-        System.out.println("Tác giả: Team Device Management");
-        System.out.println("=====================================");
+        System.out.println("DEVICE MANAGEMENT APPLICATION");
         
         DeviceManagementUI ui = new DeviceManagementUI();
         ui.startApplication();
