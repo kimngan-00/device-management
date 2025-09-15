@@ -143,3 +143,51 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local 
+# Project specific files
+TestDatabase.java
+TestModels.java
+TestPhongBanDB.java
+check_database.sql
+
+# Test files in root directory
+*Test*.java
+*Test*.class
+
+# SQL files (except schema files)
+*.sql
+!create_*.sql
+!database/init.sql
+
+# Configuration files with sensitive data
+config.env
+*.env
+
+# Log files
+logs/
+*.log
+
+# Compiled test classes
+src/test/java/**/*.class
+src/main/java/**/*.class
+
+# IDE specific
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Maven
+target/
+.mvn/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
