@@ -1,4 +1,4 @@
-package com.mycompany.device.ui;
+package com.mycompany.device.ui.console;
 
 import com.mycompany.device.model.PhongBan;
 import com.mycompany.device.service.PhongBanService;

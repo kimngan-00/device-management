@@ -1,87 +1,89 @@
 package com.mycompany.device;
 
-import com.mycompany.device.model.PhongBan;
-import com.mycompany.device.model.NhanVien;
-import com.mycompany.device.ui.PhongBanController;
-import com.mycompany.device.service.PhongBanService;
-import com.mycompany.device.service.impl.PhongBanServiceImpl;
+import com.mycompany.device.ui.swing.frame.LoginFrame;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.swing.*;
 
 /**
  * Ứng dụng chính quản lý phòng ban và nhân viên
+ * Main class cho ứng dụng Swing
  * @author Kim Ngan
  */
 public class DeviceManagementApp {
     
+    private static final Logger logger = LoggerFactory.getLogger(DeviceManagementApp.class);
+    
     public static void main(String[] args) {
-        System.out.println("=== HỆ THỐNG QUẢN LÝ PHÒNG BAN VÀ NHÂN VIÊN ===");
+        logger.info("Khởi động ứng dụng Swing Device Management");
         
-        // Test model cơ bản
-        testModels();
-        
-        // Test database
-        testDatabase();
-        
-        // Chạy giao diện quản lý phòng ban
-        runPhongBanManagement();
-    }
-    
-    private static void testModels() {
-        System.out.println("\n--- Test Models ---");
-        
-        // Test PhongBan
-        PhongBan pb1 = new PhongBan("PB001", "Phòng Kỹ thuật", "Quản lý kỹ thuật và công nghệ");
-        System.out.println("Phòng ban 1: " + pb1);
-        
-        // Test NhanVien
-        NhanVien nv1 = new NhanVien("NV001", "Nguyễn Văn A", "nva@company.com", "password123");
-        nv1.setSoDienThoai("0123456789");
-        nv1.setMaPhongBan("PB001");
-        System.out.println("Nhân viên 1: " + nv1);
-        
-        System.out.println("✓ Test Models thành công!");
-    }
-    
-    private static void testDatabase() {
-        System.out.println("\n--- Test Database ---");
-        
+        // Thiết lập Look and Feel
         try {
-            PhongBanService service = new PhongBanServiceImpl();
-            
-            // Test 1: Tạo phòng ban
-            System.out.println("1. Test tạo phòng ban:");
-            boolean result1 = service.taoPhongBan("PB001", "Phòng Kỹ thuật", "Quản lý kỹ thuật và công nghệ");
-            System.out.println("   Kết quả: " + (result1 ? "✓ Thành công" : "✗ Thất bại"));
-            
-            // Test 2: Tạo phòng ban thứ 2
-            System.out.println("\n2. Test tạo phòng ban thứ 2:");
-            boolean result2 = service.taoPhongBan("PB002", "Phòng Nhân sự", "Quản lý nhân sự và tuyển dụng");
-            System.out.println("   Kết quả: " + (result2 ? "✓ Thành công" : "✗ Thất bại"));
-            
-            // Test 3: Xem danh sách
-            System.out.println("\n3. Test xem danh sách phòng ban:");
-            var danhSach = service.xemDanhSachPhongBan();
-            System.out.println("   Số lượng phòng ban: " + danhSach.size());
-            for (var pb : danhSach) {
-                System.out.println("   - " + pb);
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            logger.info("Đã thiết lập System Look and Feel");
+        } catch (Exception e) {
+            logger.warn("Không thể thiết lập System Look and Feel: " + e.getMessage());
+            try {
+                UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
+                logger.info("Đã thiết lập Cross Platform Look and Feel");
+            } catch (Exception ex) {
+                logger.error("Không thể thiết lập Look and Feel: " + ex.getMessage());
             }
+        }
+        
+        // Thiết lập font mặc định cho các component
+        setupDefaultFonts();
+        
+        // Khởi động ứng dụng trong Event Dispatch Thread
+        SwingUtilities.invokeLater(() -> {
+            try {
+                // Tạo và hiển thị Login Frame
+                LoginFrame loginFrame = new LoginFrame();
+                loginFrame.setVisible(true);
+                
+                logger.info("Ứng dụng Swing đã khởi động thành công");
+                
+            } catch (Exception e) {
+                logger.error("Lỗi khi khởi động ứng dụng Swing: " + e.getMessage(), e);
+                
+                // Hiển thị error dialog
+                JOptionPane.showMessageDialog(
+                    null,
+                    "Lỗi khi khởi động ứng dụng:\n" + e.getMessage(),
+                    "Lỗi khởi động",
+                    JOptionPane.ERROR_MESSAGE
+                );
+                
+                System.exit(1);
+            }
+        });
+    }
+    
+    /**
+     * Thiết lập font mặc định cho các component Swing
+     */
+    private static void setupDefaultFonts() {
+        try {
+            // Font mặc định
+            java.awt.Font defaultFont = new java.awt.Font("SansSerif", java.awt.Font.PLAIN, 12);
             
-            System.out.println("\n✓ Test Database thành công!");
+            // Áp dụng cho các component
+            UIManager.put("Label.font", defaultFont);
+            UIManager.put("Button.font", defaultFont);
+            UIManager.put("TextField.font", defaultFont);
+            UIManager.put("TextArea.font", defaultFont);
+            UIManager.put("ComboBox.font", defaultFont);
+            UIManager.put("Table.font", defaultFont);
+            UIManager.put("TableHeader.font", new java.awt.Font("SansSerif", java.awt.Font.BOLD, 12));
+            UIManager.put("Menu.font", defaultFont);
+            UIManager.put("MenuItem.font", defaultFont);
+            UIManager.put("TitledBorder.font", new java.awt.Font("SansSerif", java.awt.Font.BOLD, 11));
+            
+            logger.info("Đã thiết lập font mặc định cho UI components");
             
         } catch (Exception e) {
-            System.err.println("❌ Lỗi Database: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-    
-    private static void runPhongBanManagement() {
-        System.out.println("\n--- QUẢN LÝ PHÒNG BAN ---");
-        
-        PhongBanController controller = new PhongBanController();
-        
-        try {
-            controller.xuLyMenu();
-        } finally {
-            controller.dong();
+            logger.warn("Không thể thiết lập font mặc định: " + e.getMessage());
         }
     }
 }
