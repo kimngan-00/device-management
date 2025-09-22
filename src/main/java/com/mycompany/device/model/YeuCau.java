@@ -4,7 +4,6 @@ import java.time.LocalDateTime;
 
 /**
  * Model đại diện cho yêu cầu trong hệ thống
- * @author Kim Ngan - Model Layer
  */
 public class YeuCau {
     private Long id;

@@ -9,7 +9,6 @@ import java.time.format.DateTimeFormatter;
 
 /**
  * Logger Observer cho NhanVien
- * Ghi log tất cả các hoạt động liên quan đến nhân viên
  * @author Kim Ngan - Observer Pattern Implementation
  */
 public class NhanVienLogger implements NhanVienObserver {
@@ -35,7 +34,6 @@ public class NhanVienLogger implements NhanVienObserver {
     public void onNhanVienUpdated(NhanVien nhanVien, NhanVien oldNhanVien) {
         String timestamp = LocalDateTime.now().format(formatter);
         
-        // Log các thay đổi chi tiết
         StringBuilder changes = new StringBuilder();
         
         if (!oldNhanVien.getTenNhanVien().equals(nhanVien.getTenNhanVien())) {

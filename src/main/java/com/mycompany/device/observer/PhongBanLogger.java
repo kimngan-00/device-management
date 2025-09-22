@@ -9,7 +9,6 @@ import java.time.format.DateTimeFormatter;
 
 /**
  * Logger Observer cho PhongBan
- * Ghi log tất cả các hoạt động liên quan đến phòng ban
  * @author Kim Ngan - Observer Pattern Implementation
  */
 public class PhongBanLogger implements PhongBanObserver {
@@ -35,7 +34,6 @@ public class PhongBanLogger implements PhongBanObserver {
     public void onPhongBanUpdated(PhongBan phongBan, PhongBan oldPhongBan) {
         String timestamp = LocalDateTime.now().format(formatter);
         
-        // Log các thay đổi chi tiết
         StringBuilder changes = new StringBuilder();
         
         if (!oldPhongBan.getTenPhongBan().equals(phongBan.getTenPhongBan())) {
