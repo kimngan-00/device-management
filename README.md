@@ -1,5 +1,12 @@
 # Hệ Thống Quản Lý Thiết Bị
 
+## 📚 Tài liệu hướng dẫn
+
+- **🚀 [Quick Reference](docs/QUICK_REFERENCE.md)** - Tham khảo nhanh tạo screen mới
+- **📖 [Chi tiết tạo Screen mới](docs/CREATE_NEW_SCREEN_GUIDE.md)** - Hướng dẫn đầy đủ từ A-Z
+- **🔧 [MySQL Setup](docs/MYSQL_SETUP.md)** - Cài đặt cơ sở dữ liệu
+- **🏗️ [Design Patterns](docs/DESIGN_PATTERNS.md)** - Các pattern được sử dụng
+
 ### Kiến trúc hệ thống
 ```
 src/main/java/com/mycompany/device/
@@ -64,7 +71,7 @@ cd device-management-system
 # Compile project
 mvn clean compile
 
-# Chạy ứng dụng
+# Chạy ứng dụng Swing GUI
 mvn exec:java
 ```
 
