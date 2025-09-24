@@ -1,6 +1,11 @@
 package com.mycompany.device.model;
 
+import com.mycompany.device.service.NhanVienService;
+import com.mycompany.device.util.PasswordUtil;
+
 import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Model đại diện cho nhân viên trong hệ thống
@@ -150,5 +155,44 @@ public class NhanVien {
     @Override
     public int hashCode() {
         return maNhanVien != null ? maNhanVien.hashCode() : 0;
+    }
+
+    /**
+     * Static method để thực hiện login
+     * @param email Email đăng nhập
+     * @param password Mật khẩu
+     * @param nhanVienService Service để xử lý
+     * @return Optional chứa NhanVien nếu đăng nhập thành công
+     */
+    public static Optional<NhanVien> login(String email, String password, NhanVienService nhanVienService) {
+        if (nhanVienService == null) {
+            throw new IllegalArgumentException("NhanVienService không được null");
+        }
+        return nhanVienService.dangNhap(email, password);
+    }
+
+    /**
+     * Method kiểm tra mật khẩu cho instance hiện tại
+     * @param password Mật khẩu cần kiểm tra
+     * @return true nếu mật khẩu đúng
+     */
+    public boolean checkPassword(String password) {
+        if (password == null || this.password == null) {
+            return false;
+        }
+        return PasswordUtil.verifyPasswordSimple(password, this.password);
+    }
+
+    /**
+     * Method authenticate - kết hợp email và password check
+     * @param email Email để authenticate
+     * @param password Password để authenticate
+     * @return true nếu email và password khớp với instance này
+     */
+    public boolean authenticate(String email, String password) {
+        if (email == null || !email.trim().equalsIgnoreCase(this.email)) {
+            return false;
+        }
+        return checkPassword(password);
     }
 }

@@ -1,5 +1,6 @@
 package com.mycompany.device.ui.swing.frame;
 
+import com.mycompany.device.controller.AuthController;
 import com.mycompany.device.controller.PhongBanController;
 import com.mycompany.device.service.PhongBanService;
 import com.mycompany.device.service.impl.PhongBanServiceImpl;
@@ -13,6 +14,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import com.mycompany.device.model.NhanVien;
 
 /**
  * Giao diện chính với Sidebar Menu Layout
@@ -39,6 +41,7 @@ public class MainFrame extends JFrame {
     
     // MVC Controllers
     private PhongBanController phongBanController;
+    private AuthController authController;
     
     // Menu items
     private JPanel selectedMenuItem = null;
@@ -55,12 +58,21 @@ public class MainFrame extends JFrame {
     private static final Color TEXT_PRIMARY_COLOR = Color.WHITE;
     private static final Color TEXT_SECONDARY_COLOR = new Color(173, 181, 189);
 
-    public MainFrame() {
+    // Thêm constructor mới để nhận AuthController
+    public MainFrame(AuthController authController) {
+        this.authController = authController;
         initializeComponents();
         setupLayout();
         setupEventHandlers();
-        showDashboard(); // Show dashboard by default
-        logger.info("Khởi tạo MainFrame thành công");
+        loadInitialData();
+        
+        // Hiển thị thông tin user đã đăng nhập
+        if (authController.getCurrentUser() != null) {
+            NhanVien currentUser = authController.getCurrentUser();
+            setTitle("Hệ Thống Quản Lý Thiết Bị - " + currentUser.getTenNhanVien() + " (" + currentUser.getRole().getDisplayName() + ")");
+        }
+        
+        logger.info("MainFrame đã được khởi tạo với AuthController");
     }
     
     /**
@@ -297,7 +309,7 @@ public class MainFrame extends JFrame {
                 showSettings();
                 break;
             case "LOGOUT":
-                logout();
+                handleLogout();
                 break;
             default:
                 logger.warn("Unknown menu action: " + action);
@@ -515,18 +527,12 @@ public class MainFrame extends JFrame {
     /**
      * Xu ly dang xuat
      */
-    private void logout() {
-        int option = JOptionPane.showConfirmDialog(
-            this,
-            "Bạn có chắc chắn muốn đăng xuất?",
-            "Xác nhận đăng xuất",
-            JOptionPane.YES_NO_OPTION,
-            JOptionPane.QUESTION_MESSAGE
-        );
-        
-        if (option == JOptionPane.YES_OPTION) {
-            screenRouter.logout();
+    private void handleLogout() {
+        if (authController != null) {
+            authController.logout();
         }
+        this.dispose();
+        new LoginFrame().setVisible(true);
     }
     
     /**
@@ -554,5 +560,14 @@ public class MainFrame extends JFrame {
         if (statusLabel != null) {
             statusLabel.setText(message);
         }
+    }
+
+    /**
+     * Load initial data (if needed)
+     */
+    private void loadInitialData() {
+        // Example: If you need to load data for the main frame,
+        // you would call methods from phongBanController or nhanVienController
+        // For now, it's empty as per the original code.
     }
 }

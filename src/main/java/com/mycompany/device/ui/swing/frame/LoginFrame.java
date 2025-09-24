@@ -1,8 +1,8 @@
 package com.mycompany.device.ui.swing.frame;
 
-import com.mycompany.device.ui.swing.service.UIAuthService;
-import com.mycompany.device.ui.swing.service.UIAuthService.AuthResult;
-import com.mycompany.device.ui.swing.service.UIAuthService.UserInfo;
+import com.mycompany.device.controller.AuthController;
+import com.mycompany.device.controller.AuthController.AuthResult;
+import com.mycompany.device.model.NhanVien;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,10 +12,10 @@ import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 
 /**
- * Giao dien dang nhap cho he thong quan ly thiet bi
- * Su dung Mock Authentication Service
+ * Giao diện đăng nhập cho hệ thống quản lý thiết bị
+ * Sử dụng AuthController thực tế thay vì Mock Authentication
  * 
- * @author UI Team - Login Interface with Mock Auth
+ * @author UI Team - Login Interface with Real Auth
  */
 public class LoginFrame extends JFrame {
     
@@ -28,10 +28,10 @@ public class LoginFrame extends JFrame {
     private JButton cancelButton;
     private JLabel statusLabel;
     
-    // Services
-    private UIAuthService authService;
+    // Auth Controller
+    private AuthController authController;
     
-    // UI Constants - Colors va Fonts
+    // UI Constants - Colors và Fonts
     private static final Font TITLE_FONT = new Font("Arial", Font.BOLD, 28);
     private static final Font SUBTITLE_FONT = new Font("Arial", Font.ITALIC, 14);
     private static final Font LABEL_FONT = new Font("Arial", Font.PLAIN, 14);
@@ -46,61 +46,23 @@ public class LoginFrame extends JFrame {
     private static final Color ERROR_COLOR = new Color(220, 53, 69);
 
     public LoginFrame() {
-        initializeMockAuthService();
+        initializeAuthController();
         initializeComponents();
         setupLayout();
         setupEventHandlers();
-        logger.info("LoginFrame duoc khoi tao thanh cong");
+        logger.info("LoginFrame được khởi tạo thành công với AuthController");
     }
 
     /**
-     * Khoi tao Mock Authentication Service
-     * Day la implementation inline cua UIAuthService interface
-     * Khong phu thuoc vao backend services
+     * Khởi tạo AuthController thực tế
      */
-    private void initializeMockAuthService() {
-        this.authService = new UIAuthService() {
-            @Override
-            public AuthResult login(String email, String password) {
-                // Simulate network delay
-                try {
-                    Thread.sleep(500);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-                
-                // Mock authentication logic
-                if ("nva@company.com".equals(email) && "123456".equals(password)) {
-                    return new AuthResult(true, "Đăng nhập thành công!", 
-                        new UserInfo("nva", "Nguyen Van A", email, "USER", "IT"), "session-123");
-                } else if ("admin@company.com".equals(email) && "admin123".equals(password)) {
-                    return new AuthResult(true, "Đăng nhập thành công!", 
-                        new UserInfo("admin", "Admin User", email, "ADMIN", "ADMIN"), "session-456");
-                } else if ("manager@company.com".equals(email) && "manager123".equals(password)) {
-                    return new AuthResult(true, "Đăng nhập thành công!", 
-                        new UserInfo("manager", "Manager User", email, "MANAGER", "HR"), "session-789");
-                } else if ("staff@company.com".equals(email) && "staff123".equals(password)) {
-                    return new AuthResult(true, "Đăng nhập thành công!", 
-                        new UserInfo("staff", "Staff User", email, "STAFF", "SALES"), "session-101");
-                } else {
-                    return new AuthResult(false, "Email hoặc mật khẩu không đúng!", null, null);
-                }
-            }
-            
-            @Override
-            public void logout(String userId) { 
-                logger.info("User {} đã đăng xuất", userId);
-            }
-            
-            @Override
-            public boolean isSessionValid(String sessionId) { 
-                return sessionId != null && sessionId.startsWith("session-");
-            }
-        };
+    private void initializeAuthController() {
+        this.authController = new AuthController();
+        logger.info("Đã khởi tạo AuthController với NhanVienService thực tế");
     }
 
     /**
-     * Khoi tao cac components cua giao dien
+     * Khởi tạo các components của giao diện
      */
     private void initializeComponents() {
         // Email field
@@ -174,11 +136,11 @@ public class LoginFrame extends JFrame {
         statusLabel.setFont(LABEL_FONT);
         statusLabel.setHorizontalAlignment(SwingConstants.CENTER);
         
-        logger.info("Da khoi tao tat ca components");
+        logger.info("Đã khởi tạo tất cả components");
     }
     
     /**
-     * Thiet lap layout cho giao dien
+     * Thiết lập layout cho giao diện
      */
     private void setupLayout() {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -186,18 +148,18 @@ public class LoginFrame extends JFrame {
         setResizable(false);
         getContentPane().setBackground(BACKGROUND_COLOR);
         
-        // Tao main panel
+        // Tạo main panel
         JPanel mainPanel = createMainPanel();
         add(mainPanel, BorderLayout.CENTER);
         
         pack();
         setLocationRelativeTo(null);
         
-        logger.info("Da thiet lap layout thanh cong");
+        logger.info("Đã thiết lập layout thành công");
     }
     
     /**
-     * Thiet lap cac event handlers
+     * Thiết lập các event handlers
      */
     private void setupEventHandlers() {
         // Enter key cho login
@@ -217,11 +179,11 @@ public class LoginFrame extends JFrame {
         loginButton.addActionListener(event -> performLogin());
         cancelButton.addActionListener(event -> System.exit(0));
         
-        logger.info("Da thiet lap tat ca event handlers");
+        logger.info("Đã thiết lập tất cả event handlers");
     }
 
     /**
-     * Tao main panel chua tat ca components
+     * Tạo main panel chứa tất cả components
      */
     private JPanel createMainPanel() {
         JPanel mainPanel = new JPanel(new BorderLayout());
@@ -244,7 +206,7 @@ public class LoginFrame extends JFrame {
     }
 
     /**
-     * Tao header panel voi title va subtitle
+     * Tạo header panel với title và subtitle
      */
     private JPanel createHeaderPanel() {
         JPanel headerPanel = new JPanel();
@@ -272,7 +234,7 @@ public class LoginFrame extends JFrame {
     }
 
     /**
-     * Tao form panel voi email/password fields
+     * Tạo form panel với email/password fields
      */
     private JPanel createFormPanel() {
         JPanel formPanel = new JPanel(new GridBagLayout());
@@ -329,7 +291,7 @@ public class LoginFrame extends JFrame {
     }
 
     /**
-     * Tao button panel voi login va cancel buttons
+     * Tạo button panel với login và cancel buttons
      */
     private JPanel createButtonPanel() {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
@@ -342,7 +304,7 @@ public class LoginFrame extends JFrame {
     }
 
     /**
-     * Tao demo accounts panel
+     * Tạo demo accounts panel
      */
     private JPanel createDemoAccountsPanel() {
         JPanel demoPanel = new JPanel();
@@ -350,7 +312,7 @@ public class LoginFrame extends JFrame {
         demoPanel.setBackground(BACKGROUND_COLOR);
         demoPanel.setBorder(BorderFactory.createEmptyBorder(20, 0, 0, 0));
 
-        JLabel demoLabel = new JLabel("Tài khoản demo:");
+        JLabel demoLabel = new JLabel("Tài khoản demo (cần có trong database):");
         demoLabel.setFont(new Font("Arial", Font.BOLD, 12));
         demoLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
@@ -371,8 +333,8 @@ public class LoginFrame extends JFrame {
     }
 
     /**
-     * Xu ly dang nhap voi Mock Authentication
-     * Su dung SwingWorker de tranh block UI thread
+     * Xử lý đăng nhập với AuthController thực tế
+     * Sử dụng SwingWorker để tránh block UI thread
      */
     private void performLogin() {
         String email = emailField.getText().trim();
@@ -389,11 +351,11 @@ public class LoginFrame extends JFrame {
         loginButton.setText("Đang đăng nhập...");
         showStatus("Đang xác thực...", PRIMARY_COLOR);
 
-        // Thuc hien dang nhap trong background thread
+        // Thực hiện đăng nhập trong background thread
         SwingWorker<AuthResult, Void> loginWorker = new SwingWorker<AuthResult, Void>() {
             @Override
             protected AuthResult doInBackground() throws Exception {
-                return authService.login(email, password);
+                return authController.login(email, password);
             }
 
             @Override
@@ -403,10 +365,10 @@ public class LoginFrame extends JFrame {
 
                     if (result.isSuccess()) {
                         showStatus("Đăng nhập thành công!", SUCCESS_COLOR);
-                        logger.info("Đăng nhập thành công cho user: {}", result.getUserInfo().getName());
+                        logger.info("Đăng nhập thành công cho user: {}", result.getNhanVien().getTenNhanVien());
 
                         // Delay một chút để user thấy message thành công
-                        Timer timer = new Timer(1000, event -> openMainFrame(result.getUserInfo()));
+                        Timer timer = new Timer(1000, event -> openMainFrame(result.getNhanVien()));
                         timer.setRepeats(false);
                         timer.start();
 
@@ -430,7 +392,7 @@ public class LoginFrame extends JFrame {
     }
 
     /**
-     * Hien thi status message
+     * Hiển thị status message
      */
     private void showStatus(String message, Color color) {
         statusLabel.setText(message);
@@ -438,27 +400,25 @@ public class LoginFrame extends JFrame {
     }
 
     /**
-     * Mo MainFrame sau khi dang nhap thanh cong
+     * Mở MainFrame sau khi đăng nhập thành công
      */
-    private void openMainFrame(UIAuthService.UserInfo userInfo) {
-        // Dong login frame
+    private void openMainFrame(NhanVien nhanVien) {
+        // Đóng login frame
         this.dispose();
 
-        // Mo main frame voi thong tin user
+        // Mở main frame với thông tin user
         SwingUtilities.invokeLater(() -> {
             try {
-                // Truyen userInfo cho MainFrame de hien thi thong tin user
-                // MainFrame mainFrame = new MainFrame(userInfo);
-                // Hien tai MainFrame chua ho tro userInfo, nen dung constructor mac dinh
-                MainFrame mainFrame = new MainFrame();
+                // Truyền AuthController cho MainFrame để quản lý session
+                MainFrame mainFrame = new MainFrame(authController);
                 mainFrame.setVisible(true);
-                logger.info("Da mo MainFrame cho user: {}", userInfo.getName());
+                logger.info("Đã mở MainFrame cho user: {}", nhanVien.getTenNhanVien());
             } catch (Exception e) {
-                logger.error("Loi khi mo MainFrame: " + e.getMessage(), e);
+                logger.error("Lỗi khi mở MainFrame: " + e.getMessage(), e);
                 JOptionPane.showMessageDialog(
                     null, 
-                    "Loi khi mo giao dien chinh: " + e.getMessage(),
-                    "Loi",
+                    "Lỗi khi mở giao diện chính: " + e.getMessage(),
+                    "Lỗi",
                     JOptionPane.ERROR_MESSAGE
                 );
             }
@@ -471,6 +431,13 @@ public class LoginFrame extends JFrame {
     public void setDemoData() {
         emailField.setText("nva@company.com");
         passwordField.setText("123456");
+    }
+
+    /**
+     * Lấy AuthController để sử dụng ở nơi khác
+     */
+    public AuthController getAuthController() {
+        return authController;
     }
 
     /**
