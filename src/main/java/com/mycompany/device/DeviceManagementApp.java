@@ -1,13 +1,16 @@
 package com.mycompany.device;
 
 import com.mycompany.device.ui.swing.frame.LoginFrame;
+import com.mycompany.device.util.LogoUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionListener;
 
 /**
- * Ứng dụng chính quản lý phòng ban và nhân viên
+ * Ứng dụng quản lý thiết bị
  * Main class cho ứng dụng Swing
  * @author Kim Ngan
  */
@@ -34,6 +37,12 @@ public class DeviceManagementApp {
         
         // Thiết lập font mặc định cho các component
         setupDefaultFonts();
+        
+        // Thiết lập application icon cho desktop
+        setupApplicationIcon();
+        
+        // Thiết lập System Tray nếu được hỗ trợ
+        setupSystemTray();
         
         // Khởi động ứng dụng trong Event Dispatch Thread
         SwingUtilities.invokeLater(() -> {
@@ -84,6 +93,111 @@ public class DeviceManagementApp {
             
         } catch (Exception e) {
             logger.warn("Không thể thiết lập font mặc định: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Thiết lập application icon cho desktop và taskbar
+     */
+    private static void setupApplicationIcon() {
+        try {
+            // Lấy logo icon từ LogoUtil
+            ImageIcon logoIcon = LogoUtil.getLogoIcon();
+            if (logoIcon != null) {
+                Image logoImage = logoIcon.getImage();
+                
+                // Kiểm tra xem có hỗ trợ Taskbar API không (Java 9+)
+                if (Taskbar.isTaskbarSupported()) {
+                    Taskbar taskbar = Taskbar.getTaskbar();
+                    
+                    // Set icon cho taskbar
+                    if (taskbar.isSupported(Taskbar.Feature.ICON_IMAGE)) {
+                        taskbar.setIconImage(logoImage);
+                        logger.info("Đã thiết lập icon cho taskbar");
+                    }
+                } else {
+                    logger.info("Taskbar API không được hỗ trợ trên hệ thống này");
+                }
+                
+                // Set default icon cho tất cả JFrame
+                // Sẽ được áp dụng cho các frame không có icon riêng
+                java.util.List<Image> iconImages = new java.util.ArrayList<>();
+                iconImages.add(logoImage);
+                iconImages.add(LogoUtil.getLogoIcon(32, 32).getImage());
+                iconImages.add(LogoUtil.getLogoIcon(16, 16).getImage());
+                
+                // Set default icon cho application
+                if (Desktop.isDesktopSupported()) {
+                    // Có thể thêm các tương tác desktop khác ở đây
+                    logger.info("Desktop API được hỗ trợ");
+                }
+                
+                logger.info("Đã thiết lập application icon thành công");
+                
+            } else {
+                logger.warn("Không thể tải logo icon");
+            }
+            
+        } catch (Exception e) {
+            logger.warn("Không thể thiết lập application icon: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Thiết lập System Tray với logo của ứng dụng
+     */
+    private static void setupSystemTray() {
+        try {
+            // Kiểm tra xem system tray có được hỗ trợ không
+            if (!SystemTray.isSupported()) {
+                logger.info("System Tray không được hỗ trợ trên hệ thống này");
+                return;
+            }
+            
+            SystemTray tray = SystemTray.getSystemTray();
+            ImageIcon logoIcon = LogoUtil.getLogoIcon(16, 16); // Size nhỏ cho tray
+            
+            if (logoIcon != null) {
+                // Tạo popup menu cho tray icon
+                PopupMenu popup = new PopupMenu();
+                
+                MenuItem openItem = new MenuItem("Mở ứng dụng");
+                MenuItem exitItem = new MenuItem("Thoát");
+                
+                popup.add(openItem);
+                popup.addSeparator();
+                popup.add(exitItem);
+                
+                // Tạo tray icon
+                TrayIcon trayIcon = new TrayIcon(logoIcon.getImage(), "Device Management System", popup);
+                trayIcon.setImageAutoSize(true);
+                
+                // Thêm action listeners
+                openItem.addActionListener(e -> {
+                    // Logic để mở lại ứng dụng (sẽ implement sau)
+                    logger.info("Mở ứng dụng từ system tray");
+                });
+                
+                exitItem.addActionListener(e -> {
+                    logger.info("Thoát ứng dụng từ system tray");
+                    System.exit(0);
+                });
+                
+                // Double click để mở ứng dụng
+                trayIcon.addActionListener(e -> {
+                    logger.info("Double click trên tray icon");
+                });
+                
+                // Thêm tray icon vào system tray
+                tray.add(trayIcon);
+                logger.info("Đã thiết lập System Tray icon thành công");
+                
+            } else {
+                logger.warn("Không thể tải logo icon cho System Tray");
+            }
+            
+        } catch (Exception e) {
+            logger.warn("Không thể thiết lập System Tray: " + e.getMessage());
         }
     }
 }

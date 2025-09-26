@@ -1,6 +1,7 @@
 package com.mycompany.device.ui.swing.panel;
 
 import com.mycompany.device.model.PhongBan;
+import com.mycompany.device.util.LogoUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -327,28 +328,28 @@ public class PhongBanPanel extends JPanel {
      * Hiển thị thông báo thành công
      */
     public void showSuccessMessage(String message) {
-        JOptionPane.showMessageDialog(this, message, "Thành công", JOptionPane.INFORMATION_MESSAGE);
+        LogoUtil.showMessageDialog(this, message, "Thành công", JOptionPane.INFORMATION_MESSAGE);
     }
     
     /**
      * Hiển thị thông báo lỗi
      */
     public void showErrorMessage(String message) {
-        JOptionPane.showMessageDialog(this, message, "Lỗi", JOptionPane.ERROR_MESSAGE);
+        LogoUtil.showMessageDialog(this, message, "Lỗi", JOptionPane.ERROR_MESSAGE);
     }
     
     /**
      * Hiển thị thông báo cảnh báo
      */
     public void showWarningMessage(String message) {
-        JOptionPane.showMessageDialog(this, message, "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+        LogoUtil.showMessageDialog(this, message, "Cảnh báo", JOptionPane.WARNING_MESSAGE);
     }
     
     /**
      * Hiển thị dialog xác nhận
      */
     public int showConfirmDialog(String message, String title) {
-        return JOptionPane.showConfirmDialog(this, message, title, JOptionPane.YES_NO_OPTION);
+        return LogoUtil.showConfirmDialog(this, message, title, JOptionPane.YES_NO_OPTION);
     }
     
     /**

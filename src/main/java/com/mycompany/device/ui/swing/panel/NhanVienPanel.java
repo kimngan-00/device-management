@@ -2,6 +2,10 @@ package com.mycompany.device.ui.swing.panel;
 
 import com.mycompany.device.model.NhanVien;
 import com.mycompany.device.model.NhanVien.NhanVienRole;
+import com.mycompany.device.model.PhongBan;
+import com.mycompany.device.service.PhongBanService;
+import com.mycompany.device.service.impl.PhongBanServiceImpl;
+import com.mycompany.device.util.LogoUtil;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
@@ -34,7 +38,7 @@ public class NhanVienPanel extends JPanel {
     private JPasswordField txtPassword;
     private JTextField txtSoDienThoai;
     private JComboBox<NhanVienRole> cboRole;
-    private JTextField txtMaPhongBan;
+    private JComboBox<PhongBan> cboPhongBan;
     private JTextField txtNgayTao;
     
     // Button components
@@ -52,6 +56,9 @@ public class NhanVienPanel extends JPanel {
     // Mock data
     private List<NhanVien> nhanVienList;
     
+    // Services
+    private PhongBanService phongBanService;
+    
     // Table columns
     private final String[] columnNames = {
         "Mã NV", "Tên nhân viên", "Email", "Số điện thoại", 
@@ -59,11 +66,13 @@ public class NhanVienPanel extends JPanel {
     };
     
     public NhanVienPanel() {
+        phongBanService = new PhongBanServiceImpl();
         initializeComponents();
         initializeMockData();
         setupLayout();
         setupEventHandlers();
         loadDataToTable();
+        loadPhongBanData();
     }
     
     private void initializeComponents() {
@@ -90,7 +99,7 @@ public class NhanVienPanel extends JPanel {
         txtPassword = new JPasswordField();
         txtSoDienThoai = new JTextField();
         cboRole = new JComboBox<>(NhanVienRole.values());
-        txtMaPhongBan = new JTextField();
+        cboPhongBan = new JComboBox<>();
         txtNgayTao = new JTextField();
         txtNgayTao.setEditable(false); // Read-only
         
@@ -101,7 +110,7 @@ public class NhanVienPanel extends JPanel {
         txtEmail.setPreferredSize(textFieldSize);
         txtPassword.setPreferredSize(textFieldSize);
         txtSoDienThoai.setPreferredSize(textFieldSize);
-        txtMaPhongBan.setPreferredSize(textFieldSize);
+        cboPhongBan.setPreferredSize(textFieldSize);
         txtNgayTao.setPreferredSize(textFieldSize);
         cboRole.setPreferredSize(textFieldSize);
         
@@ -265,11 +274,11 @@ public class NhanVienPanel extends JPanel {
         gbc.gridx = 1; gbc.weightx = 1.0;
         panel.add(cboRole, gbc);
         
-        // Row 6: Mã phòng ban
+        // Row 6: Phòng ban
         gbc.gridx = 0; gbc.gridy = 6; gbc.weightx = 0.0;
-        panel.add(new JLabel("Mã phòng ban:"), gbc);
+        panel.add(new JLabel("Phòng ban:"), gbc);
         gbc.gridx = 1; gbc.weightx = 1.0;
-        panel.add(txtMaPhongBan, gbc);
+        panel.add(cboPhongBan, gbc);
         
         // Row 7: Ngày tạo
         gbc.gridx = 0; gbc.gridy = 7; gbc.weightx = 0.0;
@@ -352,7 +361,7 @@ public class NhanVienPanel extends JPanel {
                 txtPassword.setText(""); // Don't display password
                 txtSoDienThoai.setText(nv.getSoDienThoai());
                 cboRole.setSelectedItem(nv.getRole());
-                txtMaPhongBan.setText(nv.getMaPhongBan());
+                setSelectedPhongBan(nv.getMaPhongBan());
                 txtNgayTao.setText(nv.getNgayTao().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")));
             }
         }
@@ -365,31 +374,31 @@ public class NhanVienPanel extends JPanel {
         txtPassword.setText("");
         txtSoDienThoai.setText("");
         cboRole.setSelectedIndex(0);
-        txtMaPhongBan.setText("");
+        cboPhongBan.setSelectedIndex(-1);
         txtNgayTao.setText("");
     }
     
     private boolean validateForm() {
         if (txtMaNhanVien.getText().trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập mã nhân viên!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            LogoUtil.showMessageDialog(this, "Vui lòng nhập mã nhân viên!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             txtMaNhanVien.requestFocus();
             return false;
         }
         
         if (txtTenNhanVien.getText().trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập tên nhân viên!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            LogoUtil.showMessageDialog(this, "Vui lòng nhập tên nhân viên!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             txtTenNhanVien.requestFocus();
             return false;
         }
         
         if (txtEmail.getText().trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập email!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            LogoUtil.showMessageDialog(this, "Vui lòng nhập email!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             txtEmail.requestFocus();
             return false;
         }
         
         if (!txtEmail.getText().contains("@")) {
-            JOptionPane.showMessageDialog(this, "Email không hợp lệ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            LogoUtil.showMessageDialog(this, "Email không hợp lệ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             txtEmail.requestFocus();
             return false;
         }
@@ -421,11 +430,14 @@ public class NhanVienPanel extends JPanel {
         
         // Check if maNhanVien already exists
         if (nhanVienList.stream().anyMatch(nv -> nv.getMaNhanVien().equals(maNhanVien))) {
-            JOptionPane.showMessageDialog(this, "Mã nhân viên đã tồn tại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            LogoUtil.showMessageDialog(this, "Mã nhân viên đã tồn tại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             return;
         }
         
         // Create new NhanVien
+        PhongBan selectedPhongBan = (PhongBan) cboPhongBan.getSelectedItem();
+        String maPhongBan = selectedPhongBan != null ? selectedPhongBan.getMaPhongBan() : "";
+        
         NhanVien newNhanVien = new NhanVien(
             maNhanVien,
             txtTenNhanVien.getText().trim(),
@@ -433,7 +445,7 @@ public class NhanVienPanel extends JPanel {
             new String(txtPassword.getPassword()),
             txtSoDienThoai.getText().trim(),
             (NhanVienRole) cboRole.getSelectedItem(),
-            txtMaPhongBan.getText().trim(),
+            maPhongBan,
             LocalDateTime.now()
         );
         
@@ -441,13 +453,13 @@ public class NhanVienPanel extends JPanel {
         loadDataToTable();
         clearForm();
         
-        JOptionPane.showMessageDialog(this, "Thêm nhân viên thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+        LogoUtil.showMessageDialog(this, "Thêm nhân viên thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
     }
     
     private void handleSua(ActionEvent e) {
         int selectedRow = table.getSelectedRow();
         if (selectedRow < 0) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn nhân viên cần sửa!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+            LogoUtil.showMessageDialog(this, "Vui lòng chọn nhân viên cần sửa!", "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
         
@@ -470,26 +482,30 @@ public class NhanVienPanel extends JPanel {
             }
             nhanVien.setSoDienThoai(txtSoDienThoai.getText().trim());
             nhanVien.setRole((NhanVienRole) cboRole.getSelectedItem());
-            nhanVien.setMaPhongBan(txtMaPhongBan.getText().trim());
+            
+            // Update phòng ban
+            PhongBan selectedPhongBan = (PhongBan) cboPhongBan.getSelectedItem();
+            if (selectedPhongBan != null) {
+                nhanVien.setMaPhongBan(selectedPhongBan.getMaPhongBan());
+            }
             
             loadDataToTable();
-            JOptionPane.showMessageDialog(this, "Cập nhật nhân viên thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            LogoUtil.showMessageDialog(this, "Cập nhật nhân viên thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
         }
     }
     
     private void handleXoa(ActionEvent e) {
         int selectedRow = table.getSelectedRow();
         if (selectedRow < 0) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn nhân viên cần xóa!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+            LogoUtil.showMessageDialog(this, "Vui lòng chọn nhân viên cần xóa!", "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
         
-        int result = JOptionPane.showConfirmDialog(
+        int result = LogoUtil.showConfirmDialog(
             this, 
             "Bạn có chắc chắn muốn xóa nhân viên này?", 
             "Xác nhận xóa", 
-            JOptionPane.YES_NO_OPTION,
-            JOptionPane.QUESTION_MESSAGE
+            JOptionPane.YES_NO_OPTION
         );
         
         if (result == JOptionPane.YES_OPTION) {
@@ -502,7 +518,7 @@ public class NhanVienPanel extends JPanel {
             loadDataToTable();
             clearForm();
             
-            JOptionPane.showMessageDialog(this, "Xóa nhân viên thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            LogoUtil.showMessageDialog(this, "Xóa nhân viên thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
         }
     }
     
@@ -564,6 +580,54 @@ public class NhanVienPanel extends JPanel {
         txtTimKiem.setText("");
         cboTimKiem.setSelectedIndex(0);
         tableSorter.setRowFilter(null);
+    }
+    
+    /**
+     * Load phòng ban data vào combobox
+     */
+    private void loadPhongBanData() {
+        try {
+            java.util.List<PhongBan> phongBanList = phongBanService.xemDanhSachPhongBan();
+            cboPhongBan.removeAllItems();
+            
+            // Set custom renderer để hiển thị tên phòng ban
+            cboPhongBan.setRenderer(new DefaultListCellRenderer() {
+                @Override
+                public Component getListCellRendererComponent(JList<?> list, Object value,
+                        int index, boolean isSelected, boolean cellHasFocus) {
+                    super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                    if (value instanceof PhongBan) {
+                        PhongBan pb = (PhongBan) value;
+                        setText(pb.getTenPhongBan() + " (" + pb.getMaPhongBan() + ")");
+                    }
+                    return this;
+                }
+            });
+            
+            for (PhongBan phongBan : phongBanList) {
+                cboPhongBan.addItem(phongBan);
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi khi load dữ liệu phòng ban: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Set selected phòng ban theo mã phòng ban
+     */
+    private void setSelectedPhongBan(String maPhongBan) {
+        if (maPhongBan == null || maPhongBan.trim().isEmpty()) {
+            cboPhongBan.setSelectedIndex(-1);
+            return;
+        }
+        
+        for (int i = 0; i < cboPhongBan.getItemCount(); i++) {
+            PhongBan phongBan = cboPhongBan.getItemAt(i);
+            if (phongBan.getMaPhongBan().equals(maPhongBan)) {
+                cboPhongBan.setSelectedIndex(i);
+                break;
+            }
+        }
     }
     
     public void refreshData() {

@@ -3,6 +3,7 @@ package com.mycompany.device.ui.swing.frame;
 import com.mycompany.device.controller.AuthController;
 import com.mycompany.device.controller.AuthController.AuthResult;
 import com.mycompany.device.model.NhanVien;
+import com.mycompany.device.util.LogoUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,6 +51,10 @@ public class LoginFrame extends JFrame {
         initializeComponents();
         setupLayout();
         setupEventHandlers();
+        
+        // Set logo cho frame
+        LogoUtil.setFrameIcon(this);
+        
         logger.info("LoginFrame được khởi tạo thành công với AuthController");
     }
 
@@ -417,7 +422,7 @@ public class LoginFrame extends JFrame {
                 logger.info("Đã mở MainFrame cho user: {}", nhanVien.getTenNhanVien());
             } catch (Exception e) {
                 logger.error("Lỗi khi mở MainFrame: " + e.getMessage(), e);
-                JOptionPane.showMessageDialog(
+                LogoUtil.showMessageDialog(
                     null, 
                     "Lỗi khi mở giao diện chính: " + e.getMessage(),
                     "Lỗi",
