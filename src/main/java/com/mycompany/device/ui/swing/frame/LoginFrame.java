@@ -411,6 +411,8 @@ public class LoginFrame extends JFrame {
             try {
                 // Truyền AuthController cho MainFrame để quản lý session
                 MainFrame mainFrame = new MainFrame(authController);
+                // Cập nhật sidebar dựa trên quyền của user
+                mainFrame.refreshSidebar();
                 mainFrame.setVisible(true);
                 logger.info("Đã mở MainFrame cho user: {}", nhanVien.getTenNhanVien());
             } catch (Exception e) {
