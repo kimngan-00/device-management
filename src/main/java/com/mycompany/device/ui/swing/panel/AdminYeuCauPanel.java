@@ -5,6 +5,8 @@ import com.mycompany.device.model.YeuCau.TrangThaiYeuCau;
 import com.mycompany.device.model.CapPhat;
 import com.mycompany.device.model.ThietBi;
 import com.mycompany.device.model.NhanVien;
+import com.mycompany.device.model.PhongBan;
+import com.mycompany.device.util.LogoUtil;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
@@ -43,10 +45,11 @@ public class AdminYeuCauPanel extends JPanel {
     private List<YeuCau> filteredYeuCauList;
     private List<ThietBi> thietBiList;
     private List<NhanVien> nhanVienList;
+    private List<PhongBan> phongBanList;
     
     // Constants
     private static final String[] COLUMN_NAMES = {
-        "ID", "Thiết bị", "Người yêu cầu", "Lý do", 
+        "ID", "Thiết bị", "Người yêu cầu", "Phòng ban", "Lý do", 
         "Trạng thái", "Ngày tạo", "Thao tác"
     };
     
@@ -65,12 +68,18 @@ public class AdminYeuCauPanel extends JPanel {
         yeuCauList = new ArrayList<>();
         thietBiList = new ArrayList<>();
         nhanVienList = new ArrayList<>();
+        phongBanList = new ArrayList<>();
         
         // Mock data for testing
         initializeMockData();
     }
     
     private void initializeMockData() {
+        // Mock PhongBan data
+        phongBanList.add(new PhongBan("1", "Phòng IT", "Phòng Công nghệ thông tin"));
+        phongBanList.add(new PhongBan("2", "Phòng Kế toán", "Phòng Kế toán và Tài chính"));
+        phongBanList.add(new PhongBan("3", "Phòng Nhân sự", "Phòng Quản lý Nhân sự"));
+        
         // Mock ThietBi data
         thietBiList.add(new ThietBi(1L, "TB001", 1L, ThietBi.TrangThaiThietBi.TON_KHO, 
                 null, null, "Laptop Dell Inspiron 15", null, null));
@@ -87,7 +96,7 @@ public class AdminYeuCauPanel extends JPanel {
         nhanVienList.add(new NhanVien("NV003", "Lê Văn C", "lvc@company.com", 
                 "password", "0901234569", NhanVien.NhanVienRole.STAFF, "1"));
         
-        // Mock YeuCau data
+        // Mock YeuCau data - Chỉ có trạng thái CHO_DUYET để admin có thể duyệt/từ chối
         yeuCauList.add(new YeuCau(1L, 1L, 2L, TrangThaiYeuCau.CHO_DUYET, 
                 "Cần laptop để làm dự án mới", 
                 LocalDateTime.now().minusDays(2), LocalDateTime.now().minusDays(2)));
@@ -100,21 +109,21 @@ public class AdminYeuCauPanel extends JPanel {
         yeuCauList.add(new YeuCau(4L, 1L, 3L, TrangThaiYeuCau.TU_CHOI, 
                 "Yêu cầu laptop thứ 2", 
                 LocalDateTime.now().minusDays(4), LocalDateTime.now().minusDays(2)));
-        yeuCauList.add(new YeuCau(5L, 2L, 2L, TrangThaiYeuCau.DA_CAP_PHAT, 
+        yeuCauList.add(new YeuCau(5L, 2L, 2L, TrangThaiYeuCau.CHO_DUYET, 
                 "Mouse cho nhân viên mới", 
-                LocalDateTime.now().minusDays(5), LocalDateTime.now().minusDays(3)));
+                LocalDateTime.now().minusDays(5), LocalDateTime.now().minusDays(5)));
     }
     
     private void initializeComponents() {
         // Filter components
         cboTrangThaiFilter = new JComboBox<>();
         cboTrangThaiFilter.addItem("Tất cả");
-        for (TrangThaiYeuCau trangThai : TrangThaiYeuCau.values()) {
-            cboTrangThaiFilter.addItem(trangThai.getDisplayName());
-        }
+        cboTrangThaiFilter.addItem(TrangThaiYeuCau.CHO_DUYET.getDisplayName());
+        cboTrangThaiFilter.addItem(TrangThaiYeuCau.DA_DUYET.getDisplayName());
+        cboTrangThaiFilter.addItem(TrangThaiYeuCau.TU_CHOI.getDisplayName());
         
         txtTimKiem = new JTextField(20);
-        txtTimKiem.setToolTipText("Tìm kiếm theo tên thiết bị hoặc người yêu cầu");
+        txtTimKiem.setToolTipText("Tìm kiếm theo tên thiết bị, người yêu cầu hoặc phòng ban");
         
         btnTimKiem = new JButton("Tìm kiếm");
         btnLamMoi = new JButton("Làm mới");
@@ -127,7 +136,7 @@ public class AdminYeuCauPanel extends JPanel {
         tableModel = new DefaultTableModel(COLUMN_NAMES, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 6; // Only action column is editable
+                return column == 7; // Only action column is editable
             }
         };
         
@@ -141,12 +150,13 @@ public class AdminYeuCauPanel extends JPanel {
     private void setupTable() {
         // Set column widths
         tableYeuCau.getColumnModel().getColumn(0).setPreferredWidth(50);  // ID
-        tableYeuCau.getColumnModel().getColumn(1).setPreferredWidth(200); // Thiết bị
-        tableYeuCau.getColumnModel().getColumn(2).setPreferredWidth(150); // Người yêu cầu
-        tableYeuCau.getColumnModel().getColumn(3).setPreferredWidth(200); // Lý do
-        tableYeuCau.getColumnModel().getColumn(4).setPreferredWidth(100); // Trạng thái
-        tableYeuCau.getColumnModel().getColumn(5).setPreferredWidth(120); // Ngày tạo
-        tableYeuCau.getColumnModel().getColumn(6).setPreferredWidth(150); // Thao tác
+        tableYeuCau.getColumnModel().getColumn(1).setPreferredWidth(180); // Thiết bị
+        tableYeuCau.getColumnModel().getColumn(2).setPreferredWidth(130); // Người yêu cầu
+        tableYeuCau.getColumnModel().getColumn(3).setPreferredWidth(120); // Phòng ban
+        tableYeuCau.getColumnModel().getColumn(4).setPreferredWidth(180); // Lý do
+        tableYeuCau.getColumnModel().getColumn(5).setPreferredWidth(100); // Trạng thái
+        tableYeuCau.getColumnModel().getColumn(6).setPreferredWidth(120); // Ngày tạo
+        tableYeuCau.getColumnModel().getColumn(7).setPreferredWidth(150); // Thao tác
         
         // Set action column renderer and editor
         tableYeuCau.getColumn("Thao tác").setCellRenderer(new ActionButtonRenderer());
@@ -261,8 +271,9 @@ public class AdminYeuCauPanel extends JPanel {
                 if (!searchText.isEmpty()) {
                     String tenThietBi = getThietBiName(yeuCau.getThietBiId()).toLowerCase();
                     String tenNhanVien = getNhanVienName(yeuCau.getNhanVienId()).toLowerCase();
+                    String tenPhongBan = getPhongBanName(yeuCau.getNhanVienId()).toLowerCase();
                     
-                    if (!tenThietBi.contains(searchText) && !tenNhanVien.contains(searchText)) {
+                    if (!tenThietBi.contains(searchText) && !tenNhanVien.contains(searchText) && !tenPhongBan.contains(searchText)) {
                         return false;
                     }
                 }
@@ -285,6 +296,7 @@ public class AdminYeuCauPanel extends JPanel {
                 yeuCau.getId(),
                 getThietBiName(yeuCau.getThietBiId()),
                 getNhanVienName(yeuCau.getNhanVienId()),
+                getPhongBanName(yeuCau.getNhanVienId()),
                 yeuCau.getLyDo(),
                 yeuCau.getTrangThai().getDisplayName(),
                 yeuCau.getNgayTao().format(DATE_FORMATTER),
@@ -335,6 +347,21 @@ public class AdminYeuCauPanel extends JPanel {
             .orElse("N/A");
     }
     
+    private String getPhongBanName(Long nhanVienId) {
+        return nhanVienList.stream()
+            .filter(nv -> nv.getMaNhanVien().equals("NV" + String.format("%03d", nhanVienId)))
+            .findFirst()
+            .map(nv -> {
+                String maPhongBan = nv.getMaPhongBan();
+                return phongBanList.stream()
+                    .filter(pb -> pb.getMaPhongBan().equals(maPhongBan))
+                    .findFirst()
+                    .map(PhongBan::getTenPhongBan)
+                    .orElse("N/A");
+            })
+            .orElse("N/A");
+    }
+    
     private void approveRequest(int row) {
         if (row >= 0 && row < filteredYeuCauList.size()) {
             YeuCau yeuCau = filteredYeuCauList.get(row);
@@ -349,7 +376,7 @@ public class AdminYeuCauPanel extends JPanel {
                 CapPhat capPhat = new CapPhat(yeuCau.getId());
                 
                 // Show success message
-                JOptionPane.showMessageDialog(this, 
+                LogoUtil.showMessageDialog(this, 
                     "Yêu cầu đã được phê duyệt thành công!\nID Yêu cầu: " + yeuCau.getId(),
                     "Phê duyệt thành công", 
                     JOptionPane.INFORMATION_MESSAGE);
@@ -358,7 +385,7 @@ public class AdminYeuCauPanel extends JPanel {
                 updateTable();
                 updateStatistics();
             } else {
-                JOptionPane.showMessageDialog(this, 
+                LogoUtil.showMessageDialog(this, 
                     "Chỉ có thể phê duyệt yêu cầu đang ở trạng thái 'Chờ duyệt'",
                     "Không thể phê duyệt", 
                     JOptionPane.WARNING_MESSAGE);
@@ -371,29 +398,21 @@ public class AdminYeuCauPanel extends JPanel {
             YeuCau yeuCau = filteredYeuCauList.get(row);
             
             if (yeuCau.getTrangThai() == TrangThaiYeuCau.CHO_DUYET) {
-                String reason = JOptionPane.showInputDialog(this, 
-                    "Nhập lý do từ chối:", 
-                    "Từ chối yêu cầu", 
-                    JOptionPane.QUESTION_MESSAGE);
+                // Update status without asking for reason
+                yeuCau.setTrangThai(TrangThaiYeuCau.TU_CHOI);
+                yeuCau.setNgayCapNhat(LocalDateTime.now());
                 
-                if (reason != null && !reason.trim().isEmpty()) {
-                    // Update status
-                    yeuCau.setTrangThai(TrangThaiYeuCau.TU_CHOI);
-                    yeuCau.setNgayCapNhat(LocalDateTime.now());
-                    yeuCau.setLyDo(yeuCau.getLyDo() + " [Từ chối: " + reason + "]");
-                    
-                    // Show success message
-                    JOptionPane.showMessageDialog(this, 
-                        "Yêu cầu đã được từ chối!\nID Yêu cầu: " + yeuCau.getId(),
-                        "Từ chối thành công", 
-                        JOptionPane.INFORMATION_MESSAGE);
-                    
-                    // Refresh data
-                    updateTable();
-                    updateStatistics();
-                }
+                // Show success message
+                LogoUtil.showMessageDialog(this, 
+                    "Yêu cầu đã được từ chối thành công!\nID Yêu cầu: " + yeuCau.getId(),
+                    "Từ chối thành công", 
+                    JOptionPane.INFORMATION_MESSAGE);
+                
+                // Refresh data
+                updateTable();
+                updateStatistics();
             } else {
-                JOptionPane.showMessageDialog(this, 
+                LogoUtil.showMessageDialog(this, 
                     "Chỉ có thể từ chối yêu cầu đang ở trạng thái 'Chờ duyệt'",
                     "Không thể từ chối", 
                     JOptionPane.WARNING_MESSAGE);
@@ -415,6 +434,8 @@ public class AdminYeuCauPanel extends JPanel {
             btnApprove.setForeground(Color.WHITE);
             btnApprove.setFocusPainted(false);
             btnApprove.setBorder(BorderFactory.createEmptyBorder());
+            btnApprove.setOpaque(true);
+            btnApprove.setBorderPainted(false);
             
             btnReject = new JButton("Từ chối");
             btnReject.setPreferredSize(new Dimension(60, 25));
@@ -422,6 +443,8 @@ public class AdminYeuCauPanel extends JPanel {
             btnReject.setForeground(Color.WHITE);
             btnReject.setFocusPainted(false);
             btnReject.setBorder(BorderFactory.createEmptyBorder());
+            btnReject.setOpaque(true);
+            btnReject.setBorderPainted(false);
             
             add(btnApprove);
             add(btnReject);
@@ -439,12 +462,22 @@ public class AdminYeuCauPanel extends JPanel {
                 btnReject.setEnabled(canApprove);
                 
                 if (!canApprove) {
+                    // Trạng thái đã duyệt hoặc từ chối - button màu xám
                     btnApprove.setBackground(Color.LIGHT_GRAY);
                     btnReject.setBackground(Color.LIGHT_GRAY);
+                    btnApprove.setForeground(Color.DARK_GRAY);
+                    btnReject.setForeground(Color.DARK_GRAY);
                 } else {
-                    btnApprove.setBackground(new Color(40, 167, 69));
-                    btnReject.setBackground(new Color(220, 53, 69));
+                    // Trạng thái chờ duyệt - button có màu đặc trưng
+                    btnApprove.setBackground(new Color(40, 167, 69)); // Xanh lá cây
+                    btnReject.setBackground(new Color(220, 53, 69));  // Đỏ
+                    btnApprove.setForeground(Color.WHITE);
+                    btnReject.setForeground(Color.WHITE);
                 }
+                
+                // Force repaint
+                btnApprove.repaint();
+                btnReject.repaint();
             }
             
             return this;
@@ -469,6 +502,8 @@ public class AdminYeuCauPanel extends JPanel {
             btnApprove.setForeground(Color.WHITE);
             btnApprove.setFocusPainted(false);
             btnApprove.setBorder(BorderFactory.createEmptyBorder());
+            btnApprove.setOpaque(true);
+            btnApprove.setBorderPainted(false);
             
             btnReject = new JButton("Từ chối");
             btnReject.setPreferredSize(new Dimension(60, 25));
@@ -476,6 +511,8 @@ public class AdminYeuCauPanel extends JPanel {
             btnReject.setForeground(Color.WHITE);
             btnReject.setFocusPainted(false);
             btnReject.setBorder(BorderFactory.createEmptyBorder());
+            btnReject.setOpaque(true);
+            btnReject.setBorderPainted(false);
             
             btnApprove.addActionListener(e -> {
                 fireEditingStopped();
@@ -502,6 +539,20 @@ public class AdminYeuCauPanel extends JPanel {
                 
                 btnApprove.setEnabled(canApprove);
                 btnReject.setEnabled(canApprove);
+                
+                if (!canApprove) {
+                    // Trạng thái đã duyệt hoặc từ chối - button màu xám
+                    btnApprove.setBackground(Color.LIGHT_GRAY);
+                    btnReject.setBackground(Color.LIGHT_GRAY);
+                    btnApprove.setForeground(Color.DARK_GRAY);
+                    btnReject.setForeground(Color.DARK_GRAY);
+                } else {
+                    // Trạng thái chờ duyệt - button có màu đặc trưng
+                    btnApprove.setBackground(new Color(40, 167, 69)); // Xanh lá cây
+                    btnReject.setBackground(new Color(220, 53, 69));  // Đỏ
+                    btnApprove.setForeground(Color.WHITE);
+                    btnReject.setForeground(Color.WHITE);
+                }
             }
             
             return panel;

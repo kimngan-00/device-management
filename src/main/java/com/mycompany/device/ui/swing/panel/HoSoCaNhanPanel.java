@@ -2,7 +2,11 @@ package com.mycompany.device.ui.swing.panel;
 
 import com.mycompany.device.model.NhanVien;
 import com.mycompany.device.model.NhanVien.NhanVienRole;
+import com.mycompany.device.model.PhongBan;
 import com.mycompany.device.controller.AuthController;
+import com.mycompany.device.service.PhongBanService;
+import com.mycompany.device.service.impl.PhongBanServiceImpl;
+import com.mycompany.device.util.LogoUtil;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
@@ -25,7 +29,7 @@ public class HoSoCaNhanPanel extends JPanel {
     private JPasswordField txtXacNhanMatKhau;
     private JTextField txtSoDienThoai;
     private JLabel lblVaiTro;
-    private JTextField txtMaPhongBan;
+    private JComboBox<PhongBan> cboPhongBan;
     private JTextField txtNgayTao;
     
     // Button components
@@ -36,11 +40,14 @@ public class HoSoCaNhanPanel extends JPanel {
     // Current user
     private NhanVien currentUser;
     private AuthController authController;
+    private PhongBanService phongBanService;
     
     public HoSoCaNhanPanel() {
+        phongBanService = new PhongBanServiceImpl();
         initializeComponents();
         setupLayout();
         setupEventHandlers();
+        loadPhongBanData();
     }
     
     /**
@@ -62,7 +69,19 @@ public class HoSoCaNhanPanel extends JPanel {
         txtXacNhanMatKhau = new JPasswordField();
         txtSoDienThoai = new JTextField();
         lblVaiTro = new JLabel();
-        txtMaPhongBan = new JTextField();
+        cboPhongBan = new JComboBox<>();
+        cboPhongBan.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value,
+                    int index, boolean isSelected, boolean cellHasFocus) {
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (value instanceof PhongBan) {
+                    PhongBan phongBan = (PhongBan) value;
+                    setText(phongBan.getTenPhongBan());
+                }
+                return this;
+            }
+        });
         txtNgayTao = new JTextField();
         
         // Set read-only fields
@@ -70,7 +89,6 @@ public class HoSoCaNhanPanel extends JPanel {
         lblVaiTro.setOpaque(true);
         lblVaiTro.setBackground(Color.LIGHT_GRAY);
         lblVaiTro.setBorder(BorderFactory.createLoweredBevelBorder());
-        txtMaPhongBan.setEditable(false);
         txtNgayTao.setEditable(false);
         
         // Set preferred sizes for better display
@@ -83,7 +101,7 @@ public class HoSoCaNhanPanel extends JPanel {
         txtXacNhanMatKhau.setPreferredSize(textFieldSize);
         txtSoDienThoai.setPreferredSize(textFieldSize);
         lblVaiTro.setPreferredSize(textFieldSize);
-        txtMaPhongBan.setPreferredSize(textFieldSize);
+        cboPhongBan.setPreferredSize(textFieldSize);
         txtNgayTao.setPreferredSize(textFieldSize);
         
         // Initialize buttons
@@ -222,11 +240,11 @@ public class HoSoCaNhanPanel extends JPanel {
         gbc.gridx = 1; gbc.weightx = 1.0; gbc.fill = GridBagConstraints.HORIZONTAL;
         panel.add(lblVaiTro, gbc);
         
-        // Row 5: Mã phòng ban
+        // Row 5: Phòng ban
         gbc.gridx = 0; gbc.gridy = 5; gbc.weightx = 0.0; gbc.fill = GridBagConstraints.NONE;
-        panel.add(new JLabel("Mã phòng ban:"), gbc);
+        panel.add(new JLabel("Phòng ban:"), gbc);
         gbc.gridx = 1; gbc.weightx = 1.0; gbc.fill = GridBagConstraints.HORIZONTAL;
-        panel.add(txtMaPhongBan, gbc);
+        panel.add(cboPhongBan, gbc);
         
         // Row 6: Ngày tạo
         gbc.gridx = 0; gbc.gridy = 6; gbc.weightx = 0.0; gbc.fill = GridBagConstraints.NONE;
@@ -295,7 +313,10 @@ public class HoSoCaNhanPanel extends JPanel {
             txtEmail.setText(currentUser.getEmail());
             txtSoDienThoai.setText(currentUser.getSoDienThoai());
             lblVaiTro.setText(currentUser.getRole().getDisplayName());
-            txtMaPhongBan.setText(currentUser.getMaPhongBan());
+            
+            // Set selected phong ban
+            setSelectedPhongBan(currentUser.getMaPhongBan());
+            
             if (currentUser.getNgayTao() != null) {
                 txtNgayTao.setText(currentUser.getNgayTao().format(
                     DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")));
@@ -387,11 +408,18 @@ public class HoSoCaNhanPanel extends JPanel {
             currentUser.setEmail(txtEmail.getText().trim());
             currentUser.setSoDienThoai(txtSoDienThoai.getText().trim());
             
+            // Update phòng ban
+            PhongBan selectedPhongBan = (PhongBan) cboPhongBan.getSelectedItem();
+            if (selectedPhongBan != null) {
+                currentUser.setMaPhongBan(selectedPhongBan.getMaPhongBan());
+            }
+            
             // In real app, this would call a service to update in database
             // userService.updateUser(currentUser);
             
-            JOptionPane.showMessageDialog(this, 
+            LogoUtil.showMessageDialog(this, 
                 "Cập nhật thông tin cá nhân thành công!\n" +
+                "Phòng ban: " + ((PhongBan) cboPhongBan.getSelectedItem()).getTenPhongBan() + "\n" +
                 "Lưu ý: Trong ứng dụng thực tế, thông tin sẽ được lưu vào cơ sở dữ liệu.", 
                 "Thành công", 
                 JOptionPane.INFORMATION_MESSAGE);
@@ -429,6 +457,38 @@ public class HoSoCaNhanPanel extends JPanel {
             "Đã hủy bỏ các thay đổi!", 
             "Thông báo", 
             JOptionPane.INFORMATION_MESSAGE);
+    }
+    
+    /**
+     * Load phòng ban data vào combobox
+     */
+    private void loadPhongBanData() {
+        try {
+            java.util.List<PhongBan> phongBanList = phongBanService.xemDanhSachPhongBan();
+            cboPhongBan.removeAllItems();
+            for (PhongBan phongBan : phongBanList) {
+                cboPhongBan.addItem(phongBan);
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi khi load dữ liệu phòng ban: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Set selected phòng ban theo mã phòng ban
+     */
+    private void setSelectedPhongBan(String maPhongBan) {
+        if (maPhongBan == null || maPhongBan.trim().isEmpty()) {
+            return;
+        }
+        
+        for (int i = 0; i < cboPhongBan.getItemCount(); i++) {
+            PhongBan phongBan = cboPhongBan.getItemAt(i);
+            if (phongBan.getMaPhongBan().equals(maPhongBan)) {
+                cboPhongBan.setSelectedIndex(i);
+                break;
+            }
+        }
     }
     
     /**

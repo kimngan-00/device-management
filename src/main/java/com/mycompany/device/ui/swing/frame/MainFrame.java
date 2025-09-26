@@ -10,7 +10,9 @@ import com.mycompany.device.ui.swing.panel.NhanVienPanel;
 import com.mycompany.device.ui.swing.panel.ThietBiPanel;
 import com.mycompany.device.ui.swing.panel.YeuCauPanel;
 import com.mycompany.device.ui.swing.panel.AdminYeuCauPanel;
+import com.mycompany.device.ui.swing.panel.LichSuCapPhatPanel;
 import com.mycompany.device.ui.swing.panel.HoSoCaNhanPanel;
+import com.mycompany.device.util.LogoUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,6 +42,7 @@ public class MainFrame extends JFrame {
     private ThietBiPanel thietBiPanel;
     private YeuCauPanel yeuCauPanel;
     private AdminYeuCauPanel adminYeuCauPanel;
+    private LichSuCapPhatPanel lichSuCapPhatPanel;
     private HoSoCaNhanPanel hoSoCaNhanPanel;
     private JPanel dashboardPanel;
     private JLabel statusLabel;
@@ -74,6 +77,9 @@ public class MainFrame extends JFrame {
         setupEventHandlers();
         loadInitialData();
         
+        // Set logo cho frame
+        LogoUtil.setFrameIcon(this);
+        
         // Hiển thị thông tin user đã đăng nhập
         if (authController.getCurrentUser() != null) {
             NhanVien currentUser = authController.getCurrentUser();
@@ -94,6 +100,12 @@ public class MainFrame extends JFrame {
             // Create new sidebar with updated menu based on user role
             sidebarPanel = createSidebarPanel();
             add(sidebarPanel, BorderLayout.WEST);
+            
+            // Update user info in panels
+            if (authController != null && authController.isLoggedIn()) {
+                yeuCauPanel.setCurrentUser(authController.getCurrentUser());
+                hoSoCaNhanPanel.setCurrentUser(authController.getCurrentUser(), authController);
+            }
             
             // Refresh the UI
             revalidate();
@@ -144,6 +156,10 @@ public class MainFrame extends JFrame {
         // Initialize Admin YeuCau panel  
         adminYeuCauPanel = new AdminYeuCauPanel();
         screenRouter.registerScreen(ScreenRouter.ADMIN_YEU_CAU, adminYeuCauPanel);
+        
+        // Initialize Lich Su Cap Phat panel
+        lichSuCapPhatPanel = new LichSuCapPhatPanel();
+        screenRouter.registerScreen(ScreenRouter.LICH_SU_CAP_PHAT, lichSuCapPhatPanel);
         
         screenRouter.registerScreen(ScreenRouter.HO_SO_CA_NHAN, hoSoCaNhanPanel);
         screenRouter.registerScreen(ScreenRouter.BAO_CAO, createBaoCaoPanel());
@@ -246,6 +262,7 @@ public class MainFrame extends JFrame {
             sidebar.add(createMenuItem("👥", "Quản lý Nhân viên", "NHANVIEN"));
             sidebar.add(createMenuItem("💻", "Quản lý Thiết bị", "THIETBI"));
             sidebar.add(createMenuItem("🔧", "Quản lý Yêu cầu (Admin)", "ADMIN_YEUCAU"));
+            sidebar.add(createMenuItem("📋", "Lịch sử cấp phát thiết bị", "LICHSUCAPPHAT"));
             
             sidebar.add(Box.createVerticalStrut(10));
             sidebar.add(createMenuItem("👥", "Hồ sơ cá nhân", "HOSOCCANHAN"));
@@ -384,6 +401,9 @@ public class MainFrame extends JFrame {
                 break;
             case "ADMIN_YEUCAU":
                 showAdminYeuCauPanel();
+                break;
+            case "LICHSUCAPPHAT":
+                showLichSuCapPhatPanel();
                 break;
             case "HOSOCCANHAN":
                 showHoSoCaNhanPanel();
@@ -607,6 +627,10 @@ public class MainFrame extends JFrame {
      * Hien thi yeu cau panel
      */
     private void showYeuCauPanel() {
+        // Set current user for YeuCauPanel
+        if (authController != null && authController.isLoggedIn()) {
+            yeuCauPanel.setCurrentUser(authController.getCurrentUser());
+        }
         screenRouter.navigateToScreen(ScreenRouter.YEU_CAU);
     }
     
@@ -615,6 +639,13 @@ public class MainFrame extends JFrame {
      */
     private void showAdminYeuCauPanel() {
         screenRouter.navigateToScreen(ScreenRouter.ADMIN_YEU_CAU);
+    }
+    
+    /**
+     * Hien thi lich su cap phat panel
+     */
+    private void showLichSuCapPhatPanel() {
+        screenRouter.navigateToScreen(ScreenRouter.LICH_SU_CAP_PHAT);
     }
     
     /**

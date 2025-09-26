@@ -30,6 +30,7 @@ public class ScreenRouter {
     public static final String THIET_BI = "THIET_BI";
     public static final String YEU_CAU = "YEU_CAU";
     public static final String ADMIN_YEU_CAU = "ADMIN_YEU_CAU";
+    public static final String LICH_SU_CAP_PHAT = "LICH_SU_CAP_PHAT";
     public static final String HO_SO_CA_NHAN = "HO_SO_CA_NHAN";
     public static final String BAO_CAO = "BAO_CAO";
     public static final String CAI_DAT = "CAI_DAT";

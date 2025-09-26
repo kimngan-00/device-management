@@ -1,6 +1,7 @@
 package com.mycompany.device.ui.swing.panel;
 
 import com.mycompany.device.model.ThietBi;
+import com.mycompany.device.util.LogoUtil;
 import com.mycompany.device.model.ThietBi.TrangThaiThietBi;
 import com.mycompany.device.model.LoaiThietBi;
 
@@ -455,17 +456,17 @@ public class ThietBiPanel extends JPanel {
             loadTableData();
             clearForm();
             
-            JOptionPane.showMessageDialog(this, "Thêm thiết bị thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            LogoUtil.showMessageDialog(this, "Thêm thiết bị thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
             
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            LogoUtil.showMessageDialog(this, ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
     
     private void handleSua(ActionEvent e) {
         int selectedRow = table.getSelectedRow();
         if (selectedRow < 0) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn thiết bị cần sửa!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+            LogoUtil.showMessageDialog(this, "Vui lòng chọn thiết bị cần sửa!", "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
         
@@ -481,27 +482,26 @@ public class ThietBiPanel extends JPanel {
             thietBiList.set(selectedRow, updatedThietBi);
             loadTableData();
             
-            JOptionPane.showMessageDialog(this, "Cập nhật thiết bị thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            LogoUtil.showMessageDialog(this, "Cập nhật thiết bị thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
             
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            LogoUtil.showMessageDialog(this, ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
     
     private void handleXoa(ActionEvent e) {
         int selectedRow = table.getSelectedRow();
         if (selectedRow < 0) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn thiết bị cần xóa!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+            LogoUtil.showMessageDialog(this, "Vui lòng chọn thiết bị cần xóa!", "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
         
         ThietBi thietBi = thietBiList.get(selectedRow);
-        int result = JOptionPane.showConfirmDialog(
+        int result = LogoUtil.showConfirmDialog(
                 this,
                 "Bạn có chắc chắn muốn xóa thiết bị: " + thietBi.getSoSerial() + "?",
                 "Xác nhận xóa",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.QUESTION_MESSAGE
+                JOptionPane.YES_NO_OPTION
         );
         
         if (result == JOptionPane.YES_OPTION) {
@@ -509,7 +509,7 @@ public class ThietBiPanel extends JPanel {
             loadTableData();
             clearForm();
             
-            JOptionPane.showMessageDialog(this, "Xóa thiết bị thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            LogoUtil.showMessageDialog(this, "Xóa thiết bị thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
         }
     }
     

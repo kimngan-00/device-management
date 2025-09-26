@@ -2,6 +2,7 @@ package com.mycompany.device.ui.swing.panel;
 
 import com.mycompany.device.model.YeuCau;
 import com.mycompany.device.model.YeuCau.TrangThaiYeuCau;
+import com.mycompany.device.util.LogoUtil;
 import com.mycompany.device.model.ThietBi;
 import com.mycompany.device.model.LoaiThietBi;
 import com.mycompany.device.model.NhanVien;
@@ -343,20 +344,20 @@ public class YeuCauPanel extends JPanel {
             // Validation
             ThietBi selectedThietBi = (ThietBi) cboThietBi.getSelectedItem();
             if (selectedThietBi == null) {
-                JOptionPane.showMessageDialog(this, "Vui lòng chọn thiết bị cần mượn!", 
+                LogoUtil.showMessageDialog(this, "Vui lòng chọn thiết bị cần mượn!", 
                                             "Lỗi", JOptionPane.ERROR_MESSAGE);
                 return;
             }
             
             String lyDo = txtLyDo.getText().trim();
             if (lyDo.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Vui lòng nhập lý do mượn thiết bị!", 
+                LogoUtil.showMessageDialog(this, "Vui lòng nhập lý do mượn thiết bị!", 
                                             "Lỗi", JOptionPane.ERROR_MESSAGE);
                 return;
             }
             
             if (currentUser == null) {
-                JOptionPane.showMessageDialog(this, "Bạn cần đăng nhập để gửi yêu cầu!", 
+                LogoUtil.showMessageDialog(this, "Bạn cần đăng nhập để gửi yêu cầu!", 
                                             "Lỗi", JOptionPane.ERROR_MESSAGE);
                 return;
             }
@@ -369,11 +370,11 @@ public class YeuCauPanel extends JPanel {
             loadYeuCauTableData();
             clearForm();
             
-            JOptionPane.showMessageDialog(this, "Gửi yêu cầu thành công!", 
+            LogoUtil.showMessageDialog(this, "Gửi yêu cầu thành công!", 
                                         "Thành công", JOptionPane.INFORMATION_MESSAGE);
             
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Lỗi khi gửi yêu cầu: " + ex.getMessage(), 
+            LogoUtil.showMessageDialog(this, "Lỗi khi gửi yêu cầu: " + ex.getMessage(), 
                                         "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
@@ -381,7 +382,7 @@ public class YeuCauPanel extends JPanel {
     private void handleHuyYeuCau(ActionEvent e) {
         int selectedRow = tableYeuCau.getSelectedRow();
         if (selectedRow < 0) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn yêu cầu cần hủy!", 
+            LogoUtil.showMessageDialog(this, "Vui lòng chọn yêu cầu cần hủy!", 
                                         "Lỗi", JOptionPane.ERROR_MESSAGE);
             return;
         }
@@ -389,12 +390,12 @@ public class YeuCauPanel extends JPanel {
         YeuCau yeuCau = yeuCauList.get(selectedRow);
         
         if (!yeuCau.isPending()) {
-            JOptionPane.showMessageDialog(this, "Chỉ có thể hủy yêu cầu đang chờ duyệt!", 
+            LogoUtil.showMessageDialog(this, "Chỉ có thể hủy yêu cầu đang chờ duyệt!", 
                                         "Lỗi", JOptionPane.ERROR_MESSAGE);
             return;
         }
         
-        int confirm = JOptionPane.showConfirmDialog(this, 
+        int confirm = LogoUtil.showConfirmDialog(this, 
             "Bạn có chắc chắn muốn hủy yêu cầu này?", 
             "Xác nhận", JOptionPane.YES_NO_OPTION);
             
@@ -403,7 +404,7 @@ public class YeuCauPanel extends JPanel {
             loadYeuCauTableData();
             clearForm();
             
-            JOptionPane.showMessageDialog(this, "Đã hủy yêu cầu thành công!", 
+            LogoUtil.showMessageDialog(this, "Đã hủy yêu cầu thành công!", 
                                         "Thành công", JOptionPane.INFORMATION_MESSAGE);
         }
     }
