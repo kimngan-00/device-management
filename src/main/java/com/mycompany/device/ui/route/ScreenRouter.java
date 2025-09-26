@@ -27,6 +27,10 @@ public class ScreenRouter {
     public static final String DASHBOARD = "DASHBOARD";
     public static final String PHONG_BAN = "PHONG_BAN";
     public static final String NHAN_VIEN = "NHAN_VIEN";
+    public static final String THIET_BI = "THIET_BI";
+    public static final String YEU_CAU = "YEU_CAU";
+    public static final String ADMIN_YEU_CAU = "ADMIN_YEU_CAU";
+    public static final String HO_SO_CA_NHAN = "HO_SO_CA_NHAN";
     public static final String BAO_CAO = "BAO_CAO";
     public static final String CAI_DAT = "CAI_DAT";
     
@@ -139,6 +143,18 @@ public class ScreenRouter {
             case NHAN_VIEN:
                 handleNhanVienScreenActivated();
                 break;
+            case THIET_BI:
+                handleThietBiScreenActivated();
+                break;
+            case YEU_CAU:
+                handleYeuCauScreenActivated();
+                break;
+            case ADMIN_YEU_CAU:
+                handleAdminYeuCauScreenActivated();
+                break;
+            case HO_SO_CA_NHAN:
+                handleHoSoCaNhanScreenActivated();
+                break;
             case BAO_CAO:
                 handleBaoCaoScreenActivated();
                 break;
@@ -160,6 +176,38 @@ public class ScreenRouter {
      */
     private void handleNhanVienScreenActivated() {
         logger.debug("Nhân viên screen đã được kích hoạt");
+       
+    }
+    
+    /**
+     * Xử lý khi Thiết bị screen được kích hoạt
+     */
+    private void handleThietBiScreenActivated() {
+        logger.debug("Thiết bị screen đã được kích hoạt");
+       
+    }
+    
+    /**
+     * Xử lý khi Yêu cầu screen được kích hoạt
+     */
+    private void handleYeuCauScreenActivated() {
+        logger.debug("Yêu cầu screen đã được kích hoạt");
+       
+    }
+    
+    /**
+     * Xử lý khi Admin Yêu cầu screen được kích hoạt
+     */
+    private void handleAdminYeuCauScreenActivated() {
+        logger.debug("Admin Yêu cầu screen đã được kích hoạt");
+       
+    }
+    
+    /**
+     * Xử lý khi Hồ sơ cá nhân screen được kích hoạt
+     */
+    private void handleHoSoCaNhanScreenActivated() {
+        logger.debug("Hồ sơ cá nhân screen đã được kích hoạt");
        
     }
     

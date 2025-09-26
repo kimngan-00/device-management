@@ -7,6 +7,10 @@ import com.mycompany.device.service.impl.PhongBanServiceImpl;
 import com.mycompany.device.ui.swing.panel.PhongBanPanel;
 import com.mycompany.device.ui.route.ScreenRouter;
 import com.mycompany.device.ui.swing.panel.NhanVienPanel;
+import com.mycompany.device.ui.swing.panel.ThietBiPanel;
+import com.mycompany.device.ui.swing.panel.YeuCauPanel;
+import com.mycompany.device.ui.swing.panel.AdminYeuCauPanel;
+import com.mycompany.device.ui.swing.panel.HoSoCaNhanPanel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,6 +37,10 @@ public class MainFrame extends JFrame {
     private CardLayout cardLayout;
     private PhongBanPanel phongBanPanel;
     private NhanVienPanel nhanVienPanel;
+    private ThietBiPanel thietBiPanel;
+    private YeuCauPanel yeuCauPanel;
+    private AdminYeuCauPanel adminYeuCauPanel;
+    private HoSoCaNhanPanel hoSoCaNhanPanel;
     private JPanel dashboardPanel;
     private JLabel statusLabel;
     
@@ -76,6 +84,24 @@ public class MainFrame extends JFrame {
     }
     
     /**
+     * Refresh sidebar based on current user role
+     */
+    public void refreshSidebar() {
+        if (sidebarPanel != null) {
+            // Remove old sidebar
+            getContentPane().remove(sidebarPanel);
+            
+            // Create new sidebar with updated menu based on user role
+            sidebarPanel = createSidebarPanel();
+            add(sidebarPanel, BorderLayout.WEST);
+            
+            // Refresh the UI
+            revalidate();
+            repaint();
+        }
+    }
+    
+    /**
      * Khoi tao cac UI components
      */
     private void initializeComponents() {
@@ -89,6 +115,8 @@ public class MainFrame extends JFrame {
         // Initialize panels
         phongBanPanel = new PhongBanPanel();
         nhanVienPanel = new NhanVienPanel();
+        thietBiPanel = new ThietBiPanel();
+        hoSoCaNhanPanel = new HoSoCaNhanPanel();
         
         // Initialize services and controllers 
         PhongBanService phongBanService = new PhongBanServiceImpl();
@@ -107,6 +135,17 @@ public class MainFrame extends JFrame {
         screenRouter.registerScreen(ScreenRouter.DASHBOARD, dashboardPanel);
         screenRouter.registerScreen(ScreenRouter.PHONG_BAN, phongBanPanel);
         screenRouter.registerScreen(ScreenRouter.NHAN_VIEN, nhanVienPanel);
+        screenRouter.registerScreen(ScreenRouter.THIET_BI, thietBiPanel);
+        
+        // Initialize YeuCau panel  
+        yeuCauPanel = new YeuCauPanel();
+        screenRouter.registerScreen(ScreenRouter.YEU_CAU, yeuCauPanel);
+        
+        // Initialize Admin YeuCau panel  
+        adminYeuCauPanel = new AdminYeuCauPanel();
+        screenRouter.registerScreen(ScreenRouter.ADMIN_YEU_CAU, adminYeuCauPanel);
+        
+        screenRouter.registerScreen(ScreenRouter.HO_SO_CA_NHAN, hoSoCaNhanPanel);
         screenRouter.registerScreen(ScreenRouter.BAO_CAO, createBaoCaoPanel());
         screenRouter.registerScreen(ScreenRouter.CAI_DAT, createCaiDatPanel());
         
@@ -170,13 +209,8 @@ public class MainFrame extends JFrame {
         sidebar.add(headerPanel);
         sidebar.add(Box.createVerticalStrut(20));
         
-        // Menu items
-        sidebar.add(createMenuItem("🏠", "Dashboard", "DASHBOARD"));
-        sidebar.add(createMenuItem("🏢", "Quản lý Phòng ban", "PHONGBAN"));
-        sidebar.add(createMenuItem("👥", "Quản lý Nhân viên", "NHANVIEN"));
-        sidebar.add(Box.createVerticalStrut(10));
-        sidebar.add(createMenuItem("📊", "Báo cáo", "REPORTS"));
-        sidebar.add(createMenuItem("⚙️", "Cài đặt", "SETTINGS"));
+        // Menu items based on user role
+        addMenuItemsBasedOnRole(sidebar);
         
         // Spacer
         sidebar.add(Box.createVerticalGlue());
@@ -186,6 +220,46 @@ public class MainFrame extends JFrame {
         sidebar.add(Box.createVerticalStrut(20));
         
         return sidebar;
+    }
+    
+    /**
+     * Thêm các menu item dựa trên quyền của user
+     */
+    private void addMenuItemsBasedOnRole(JPanel sidebar) {
+        if (authController == null || !authController.isLoggedIn()) {
+            return;
+        }
+        
+        NhanVien currentUser = authController.getCurrentUser();
+        if (currentUser == null) {
+            return;
+        }
+        
+        NhanVien.NhanVienRole userRole = currentUser.getRole();
+        
+        // Common menu items for all users
+        sidebar.add(createMenuItem("🏠", "Dashboard", "DASHBOARD"));
+        
+        if (userRole == NhanVien.NhanVienRole.ADMIN) {
+            // Admin menus - có tất cả except "yêu cầu sử dụng thiết bị"
+            sidebar.add(createMenuItem("🏢", "Quản lý Phòng ban", "PHONGBAN"));
+            sidebar.add(createMenuItem("👥", "Quản lý Nhân viên", "NHANVIEN"));
+            sidebar.add(createMenuItem("💻", "Quản lý Thiết bị", "THIETBI"));
+            sidebar.add(createMenuItem("🔧", "Quản lý Yêu cầu (Admin)", "ADMIN_YEUCAU"));
+            
+            sidebar.add(Box.createVerticalStrut(10));
+            sidebar.add(createMenuItem("👥", "Hồ sơ cá nhân", "HOSOCCANHAN"));
+            sidebar.add(Box.createVerticalStrut(10));
+            sidebar.add(createMenuItem("📊", "Báo cáo", "REPORTS"));
+            sidebar.add(createMenuItem("⚙️", "Cài đặt", "SETTINGS"));
+            
+        } else if (userRole == NhanVien.NhanVienRole.STAFF) {
+            // Staff menus - chỉ dashboard, hồ sơ cá nhân, yêu cầu sử dụng thiết bị
+            sidebar.add(createMenuItem("📋", "Yêu cầu sử dụng thiết bị", "YEUCAU"));
+            
+            sidebar.add(Box.createVerticalStrut(10));
+            sidebar.add(createMenuItem("👥", "Hồ sơ cá nhân", "HOSOCCANHAN"));
+        }
     }
     
     /**
@@ -301,6 +375,18 @@ public class MainFrame extends JFrame {
                 break;
             case "NHANVIEN":
                 showNhanVienPanel();
+                break;
+            case "THIETBI":
+                showThietBiPanel();
+                break;
+            case "YEUCAU":
+                showYeuCauPanel();
+                break;
+            case "ADMIN_YEUCAU":
+                showAdminYeuCauPanel();
+                break;
+            case "HOSOCCANHAN":
+                showHoSoCaNhanPanel();
                 break;
             case "REPORTS":
                 showReports();
@@ -508,6 +594,38 @@ public class MainFrame extends JFrame {
      */
     private void showNhanVienPanel() {
         screenRouter.navigateToScreen(ScreenRouter.NHAN_VIEN);
+    }
+    
+    /**
+     * Hien thi thiet bi panel
+     */
+    private void showThietBiPanel() {
+        screenRouter.navigateToScreen(ScreenRouter.THIET_BI);
+    }
+    
+    /**
+     * Hien thi yeu cau panel
+     */
+    private void showYeuCauPanel() {
+        screenRouter.navigateToScreen(ScreenRouter.YEU_CAU);
+    }
+    
+    /**
+     * Hien thi admin yeu cau panel
+     */
+    private void showAdminYeuCauPanel() {
+        screenRouter.navigateToScreen(ScreenRouter.ADMIN_YEU_CAU);
+    }
+    
+    /**
+     * Hien thi ho so ca nhan panel
+     */
+    private void showHoSoCaNhanPanel() {
+        // Set current user for HoSoCaNhanPanel
+        if (authController != null && authController.isLoggedIn()) {
+            hoSoCaNhanPanel.setCurrentUser(authController.getCurrentUser(), authController);
+        }
+        screenRouter.navigateToScreen(ScreenRouter.HO_SO_CA_NHAN);
     }
     
     /**
