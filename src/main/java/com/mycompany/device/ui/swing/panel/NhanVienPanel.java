@@ -6,6 +6,11 @@ import com.mycompany.device.model.PhongBan;
 import com.mycompany.device.service.PhongBanService;
 import com.mycompany.device.service.impl.PhongBanServiceImpl;
 import com.mycompany.device.util.LogoUtil;
+import com.mycompany.device.service.NhanVienService;
+import com.mycompany.device.service.impl.NhanVienServiceImpl;
+import com.mycompany.device.observer.NhanVienObserver;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
@@ -19,12 +24,18 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
- * Panel quản lý nhân viên
+ * Panel quản lý nhân viên với NhanVienService integration
  * @author Kim Ngan - UI Layer
  */
-public class NhanVienPanel extends JPanel {
+public class NhanVienPanel extends JPanel implements NhanVienObserver {
+
+    private static final Logger logger = LoggerFactory.getLogger(NhanVienPanel.class);
+    
+    // Service
+    private NhanVienService nhanVienService;
 
     // Components
     private JTable table;
@@ -53,7 +64,7 @@ public class NhanVienPanel extends JPanel {
     private JTextField txtTimKiem;
     private JComboBox<String> cboTimKiem;
     
-    // Mock data
+    // Data
     private List<NhanVien> nhanVienList;
     
     // Services
@@ -67,12 +78,27 @@ public class NhanVienPanel extends JPanel {
     
     public NhanVienPanel() {
         phongBanService = new PhongBanServiceImpl();
+        initializeService();
         initializeComponents();
-        initializeMockData();
         setupLayout();
         setupEventHandlers();
         loadDataToTable();
         loadPhongBanData();
+        loadDataFromService();
+    }
+    
+    /**
+     * Khởi tạo NhanVienService và đăng ký observer
+     */
+    private void initializeService() {
+        this.nhanVienService = new NhanVienServiceImpl();
+        
+        // Đăng ký panel làm observer
+        if (nhanVienService instanceof NhanVienServiceImpl) {
+            ((NhanVienServiceImpl) nhanVienService).addObserver(this);
+        }
+        
+        logger.info("Đã khởi tạo NhanVienService và đăng ký observer");
     }
     
     private void initializeComponents() {
@@ -158,32 +184,6 @@ public class NhanVienPanel extends JPanel {
                 button.setBackground(UIManager.getColor("Button.background"));
             }
         });
-    }
-    
-    private void initializeMockData() {
-        nhanVienList = new ArrayList<>();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        
-        // Sample data
-        nhanVienList.add(new NhanVien("NV001", "Nguyễn Văn A", "nva@company.com", "password123", 
-                                     "0901234567", NhanVienRole.ADMIN, "PB001", 
-                                     LocalDateTime.parse("2024-01-15 09:00:00", formatter)));
-        
-        nhanVienList.add(new NhanVien("NV002", "Trần Thị B", "ttb@company.com", "password123", 
-                                     "0901234568", NhanVienRole.STAFF, "PB002", 
-                                     LocalDateTime.parse("2024-02-10 10:30:00", formatter)));
-        
-        nhanVienList.add(new NhanVien("NV003", "Lê Văn C", "lvc@company.com", "password123", 
-                                     "0901234569", NhanVienRole.STAFF, "PB001", 
-                                     LocalDateTime.parse("2024-03-05 14:15:00", formatter)));
-        
-        nhanVienList.add(new NhanVien("NV004", "Phạm Thị D", "ptd@company.com", "password123", 
-                                     "0901234570", NhanVienRole.STAFF, "PB003", 
-                                     LocalDateTime.parse("2024-04-20 11:20:00", formatter)));
-        
-        nhanVienList.add(new NhanVien("NV005", "Hoàng Văn E", "hve@company.com", "password123", 
-                                     "0901234571", NhanVienRole.ADMIN, "PB002", 
-                                     LocalDateTime.parse("2024-05-12 16:45:00", formatter)));
     }
     
     private void setupLayout() {
@@ -325,6 +325,22 @@ public class NhanVienPanel extends JPanel {
         txtTimKiem.addActionListener(this::handleTimKiem);
     }
     
+    /**
+     * Load dữ liệu từ NhanVienService
+     */
+    private void loadDataFromService() {
+        try {
+            nhanVienList = nhanVienService.xemDanhSachNhanVien(); // Sửa method name
+            loadDataToTable();
+            logger.info("Đã load {} nhân viên từ service", nhanVienList.size());
+        } catch (Exception e) {
+            logger.error("Lỗi khi load dữ liệu từ service", e);
+            JOptionPane.showMessageDialog(this, "Lỗi khi tải dữ liệu: " + e.getMessage(), 
+                                        "Lỗi", JOptionPane.ERROR_MESSAGE);
+            nhanVienList = new ArrayList<>();
+        }
+    }
+    
     private void loadDataToTable() {
         tableModel.setRowCount(0); // Clear existing data
         
@@ -406,54 +422,44 @@ public class NhanVienPanel extends JPanel {
         return true;
     }
     
-    private String generateNextMaNhanVien() {
-        int maxNum = 0;
-        for (NhanVien nv : nhanVienList) {
-            String ma = nv.getMaNhanVien();
-            if (ma.startsWith("NV")) {
-                try {
-                    int num = Integer.parseInt(ma.substring(2));
-                    maxNum = Math.max(maxNum, num);
-                } catch (NumberFormatException e) {
-                    // Skip invalid format
-                }
-            }
-        }
-        return String.format("NV%03d", maxNum + 1);
-    }
-    
-    // Event handlers
+    // Event handlers với NhanVienService
     private void handleThem(ActionEvent e) {
         if (!validateForm()) return;
         
         String maNhanVien = txtMaNhanVien.getText().trim();
         
-        // Check if maNhanVien already exists
-        if (nhanVienList.stream().anyMatch(nv -> nv.getMaNhanVien().equals(maNhanVien))) {
-            LogoUtil.showMessageDialog(this, "Mã nhân viên đã tồn tại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-            return;
+        try {
+            // Kiểm tra mã nhân viên đã tồn tại
+            Optional<NhanVien> existingNv = nhanVienService.timNhanVienTheoMa(maNhanVien);
+            if (existingNv.isPresent()) {
+                JOptionPane.showMessageDialog(this, "Mã nhân viên đã tồn tại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            // Tạo nhân viên mới qua service
+            boolean success = nhanVienService.taoNhanVien(
+                maNhanVien,
+                txtTenNhanVien.getText().trim(),
+                txtEmail.getText().trim(),
+                new String(txtPassword.getPassword()),
+                txtSoDienThoai.getText().trim(),
+                (NhanVienRole) cboRole.getSelectedItem(),
+                txtMaPhongBan.getText().trim()
+            );
+            
+            if (success) {
+                loadDataFromService();
+                clearForm();
+                JOptionPane.showMessageDialog(this, "Thêm nhân viên thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                logger.info("Đã tạo nhân viên mới: {}", maNhanVien);
+            } else {
+                JOptionPane.showMessageDialog(this, "Không thể tạo nhân viên. Vui lòng thử lại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
+            
+        } catch (Exception ex) {
+            logger.error("Lỗi khi tạo nhân viên", ex);
+            JOptionPane.showMessageDialog(this, "Lỗi khi tạo nhân viên: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
-        
-        // Create new NhanVien
-        PhongBan selectedPhongBan = (PhongBan) cboPhongBan.getSelectedItem();
-        String maPhongBan = selectedPhongBan != null ? selectedPhongBan.getMaPhongBan() : "";
-        
-        NhanVien newNhanVien = new NhanVien(
-            maNhanVien,
-            txtTenNhanVien.getText().trim(),
-            txtEmail.getText().trim(),
-            new String(txtPassword.getPassword()),
-            txtSoDienThoai.getText().trim(),
-            (NhanVienRole) cboRole.getSelectedItem(),
-            maPhongBan,
-            LocalDateTime.now()
-        );
-        
-        nhanVienList.add(newNhanVien);
-        loadDataToTable();
-        clearForm();
-        
-        LogoUtil.showMessageDialog(this, "Thêm nhân viên thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
     }
     
     private void handleSua(ActionEvent e) {
@@ -465,32 +471,41 @@ public class NhanVienPanel extends JPanel {
         
         if (!validateForm()) return;
         
-        // Convert view index to model index
-        int modelRow = table.convertRowIndexToModel(selectedRow);
-        String maNhanVien = (String) tableModel.getValueAt(modelRow, 0);
-        
-        // Find and update NhanVien
-        NhanVien nhanVien = nhanVienList.stream()
-                .filter(nv -> nv.getMaNhanVien().equals(maNhanVien))
-                .findFirst().orElse(null);
-        
-        if (nhanVien != null) {
-            nhanVien.setTenNhanVien(txtTenNhanVien.getText().trim());
-            nhanVien.setEmail(txtEmail.getText().trim());
-            if (!new String(txtPassword.getPassword()).trim().isEmpty()) {
-                nhanVien.setPassword(new String(txtPassword.getPassword()));
-            }
-            nhanVien.setSoDienThoai(txtSoDienThoai.getText().trim());
-            nhanVien.setRole((NhanVienRole) cboRole.getSelectedItem());
+        try {
+            // Convert view index to model index
+            int modelRow = table.convertRowIndexToModel(selectedRow);
+            String maNhanVien = (String) tableModel.getValueAt(modelRow, 0);
             
-            // Update phòng ban
-            PhongBan selectedPhongBan = (PhongBan) cboPhongBan.getSelectedItem();
-            if (selectedPhongBan != null) {
-                nhanVien.setMaPhongBan(selectedPhongBan.getMaPhongBan());
+            // Tìm nhân viên hiện tại
+            Optional<NhanVien> nhanVienOpt = nhanVienService.timNhanVienTheoMa(maNhanVien);
+            if (nhanVienOpt.isPresent()) {
+                NhanVien nhanVien = nhanVienOpt.get();
+                
+                // Cập nhật thông tin
+                nhanVien.setTenNhanVien(txtTenNhanVien.getText().trim());
+                nhanVien.setEmail(txtEmail.getText().trim());
+                if (!new String(txtPassword.getPassword()).trim().isEmpty()) {
+                    nhanVien.setPassword(new String(txtPassword.getPassword()));
+                }
+                nhanVien.setSoDienThoai(txtSoDienThoai.getText().trim());
+                nhanVien.setRole((NhanVienRole) cboRole.getSelectedItem());
+                nhanVien.setMaPhongBan(txtMaPhongBan.getText().trim());
+                
+                // Lưu qua service
+                boolean success = nhanVienService.capNhatNhanVien(nhanVien);
+                
+                if (success) {
+                    loadDataFromService();
+                    JOptionPane.showMessageDialog(this, "Cập nhật nhân viên thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                    logger.info("Đã cập nhật nhân viên: {}", maNhanVien);
+                } else {
+                    JOptionPane.showMessageDialog(this, "Không thể cập nhật nhân viên. Vui lòng thử lại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
             }
             
-            loadDataToTable();
-            LogoUtil.showMessageDialog(this, "Cập nhật nhân viên thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+        } catch (Exception ex) {
+            logger.error("Lỗi khi cập nhật nhân viên", ex);
+            JOptionPane.showMessageDialog(this, "Lỗi khi cập nhật nhân viên: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
     
@@ -509,21 +524,32 @@ public class NhanVienPanel extends JPanel {
         );
         
         if (result == JOptionPane.YES_OPTION) {
-            // Convert view index to model index
-            int modelRow = table.convertRowIndexToModel(selectedRow);
-            String maNhanVien = (String) tableModel.getValueAt(modelRow, 0);
-            
-            // Remove from list
-            nhanVienList.removeIf(nv -> nv.getMaNhanVien().equals(maNhanVien));
-            loadDataToTable();
-            clearForm();
-            
-            LogoUtil.showMessageDialog(this, "Xóa nhân viên thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            try {
+                // Convert view index to model index
+                int modelRow = table.convertRowIndexToModel(selectedRow);
+                String maNhanVien = (String) tableModel.getValueAt(modelRow, 0);
+                
+                // Xóa qua service
+                boolean success = nhanVienService.xoaNhanVien(maNhanVien);
+                
+                if (success) {
+                    loadDataFromService();
+                    clearForm();
+                    JOptionPane.showMessageDialog(this, "Xóa nhân viên thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                    logger.info("Đã xóa nhân viên: {}", maNhanVien);
+                } else {
+                    JOptionPane.showMessageDialog(this, "Không thể xóa nhân viên. Vui lòng thử lại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+                
+            } catch (Exception ex) {
+                logger.error("Lỗi khi xóa nhân viên", ex);
+                JOptionPane.showMessageDialog(this, "Lỗi khi xóa nhân viên: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
     
     private void handleLamMoi(ActionEvent e) {
-        loadDataToTable();
+        loadDataFromService();
         clearForm();
         txtTimKiem.setText("");
         cboTimKiem.setSelectedIndex(0);
@@ -631,6 +657,50 @@ public class NhanVienPanel extends JPanel {
     }
     
     public void refreshData() {
-        loadDataToTable();
+        loadDataFromService();
+    }
+    
+    // ===========================================
+    // NhanVienObserver Implementation
+    // ===========================================
+    
+    @Override
+    public void onNhanVienAdded(NhanVien nhanVien) {
+        SwingUtilities.invokeLater(() -> {
+            logger.info("Observer: Nhân viên mới được thêm - Mã: {}", nhanVien.getMaNhanVien());
+            loadDataFromService();
+        });
+    }
+    
+    @Override
+    public void onNhanVienDeleted(String maNhanVien) {
+        SwingUtilities.invokeLater(() -> {
+            logger.info("Observer: Nhân viên bị xóa - Mã: {}", maNhanVien);
+            loadDataFromService();
+        });
+    }
+    
+    @Override
+    public void onNhanVienUpdated(NhanVien nhanVien, NhanVien oldNhanVien) {
+        SwingUtilities.invokeLater(() -> {
+            logger.info("Observer: Nhân viên được cập nhật - Mã: {}", nhanVien.getMaNhanVien());
+            loadDataFromService();
+        });
+    }
+    
+    @Override
+    public void onNhanVienLoggedIn(NhanVien nhanVien) {
+        SwingUtilities.invokeLater(() -> {
+            logger.info("Observer: Nhân viên đăng nhập - Mã: {}", nhanVien.getMaNhanVien());
+            // Có thể thêm logic xử lý khi nhân viên đăng nhập
+        });
+    }
+    
+    @Override
+    public void onNhanVienLoggedOut(NhanVien nhanVien) {
+        SwingUtilities.invokeLater(() -> {
+            logger.info("Observer: Nhân viên đăng xuất - Mã: {}", nhanVien.getMaNhanVien());
+            // Có thể thêm logic xử lý khi nhân viên đăng xuất
+        });
     }
 }
