@@ -60,9 +60,9 @@ public class DatabaseConnection {
      * Set cấu hình mặc định
      */
     private void setDefaultConfig() {
-        url = "jdbc:mysql://localhost:3306/device_management";
+        url = "jdbc:mysql://localhost:3306/quanlythietbi";
         username = "root";
-        password = "";
+        password = "KhuongNguyen03";
         driver = "com.mysql.cj.jdbc.Driver";
     }
     
