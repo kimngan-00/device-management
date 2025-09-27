@@ -1,4 +1,4 @@
--- Script tạo bảng ThietBi
+nn-- Script tạo bảng ThietBi
 -- Chạy script này trong MySQL để tạo bảng ThietBi
 
 USE quanlythietbi; -- Thay đổi tên database theo database của bạn
