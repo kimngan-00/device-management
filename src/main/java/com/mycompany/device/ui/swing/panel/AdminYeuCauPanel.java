@@ -6,7 +6,15 @@ import com.mycompany.device.model.CapPhat;
 import com.mycompany.device.model.ThietBi;
 import com.mycompany.device.model.NhanVien;
 import com.mycompany.device.model.PhongBan;
+import com.mycompany.device.dao.CapPhatDAO;
+import com.mycompany.device.dao.YeuCauDAO;
+import com.mycompany.device.dao.ThietBiDAO;
+import com.mycompany.device.dao.impl.CapPhatDAOMySQLImpl;
+import com.mycompany.device.dao.impl.YeuCauDAOMySQLImpl;
+import com.mycompany.device.dao.impl.ThietBiDAOMySQLImpl;
 import com.mycompany.device.util.LogoUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
@@ -22,12 +30,15 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import com.mycompany.device.util.DatabaseConnection;
 
 /**
  * Panel dành cho admin để xem và phê duyệt các yêu cầu
  * @author Kim Ngan - UI Layer
  */
 public class AdminYeuCauPanel extends JPanel {
+    
+    private static final Logger logger = LoggerFactory.getLogger(AdminYeuCauPanel.class);
     
     // Table components
     private JTable tableYeuCau;
@@ -46,72 +57,110 @@ public class AdminYeuCauPanel extends JPanel {
     private List<ThietBi> thietBiList;
     private List<NhanVien> nhanVienList;
     private List<PhongBan> phongBanList;
+    private List<CapPhat> capPhatList; // Thêm danh sách lịch sử cấp phát
+    
+    // DAO instances
+    private CapPhatDAO capPhatDAO;
+    private YeuCauDAO yeuCauDAO;
+    private ThietBiDAO thietBiDAO;
+    
+    // Reference to LichSuCapPhatPanel for synchronization
+    private LichSuCapPhatPanel lichSuCapPhatPanel;
     
     // Constants
     private static final String[] COLUMN_NAMES = {
-        "ID", "Thiết bị", "Người yêu cầu", "Phòng ban", "Lý do", 
-        "Trạng thái", "Ngày tạo", "Thao tác"
+        "ID", "Thiết bị", "Nhân viên", "Phòng ban", "Lý do", "Trạng thái", "Ngày tạo", "Thao tác"
     };
     
-    private static final DateTimeFormatter DATE_FORMATTER = 
-        DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     
     public AdminYeuCauPanel() {
+        initializeDAOs();
         initializeData();
         initializeComponents();
         setupLayout();
         setupEventHandlers();
         loadData();
+        
+        logger.info("AdminYeuCauPanel đã được khởi tạo thành công");
+    }
+    
+    private void initializeDAOs() {
+        try {
+            logger.info("Khởi tạo các DAO...");
+            
+            // Test database connection first
+            if (!DatabaseConnection.getInstance().testConnection()) {
+                logger.error("Database connection test FAILED!");
+                throw new Exception("Database connection failed");
+            }
+            logger.info("✅ Database connection test PASSED");
+            
+            capPhatDAO = new CapPhatDAOMySQLImpl();
+            logger.info("✅ CapPhatDAO created");
+            
+            yeuCauDAO = new YeuCauDAOMySQLImpl();
+            logger.info("✅ YeuCauDAO created");
+            
+            thietBiDAO = new ThietBiDAOMySQLImpl();
+            logger.info("✅ ThietBiDAO created");
+            
+            logger.info("✅ Đã khởi tạo tất cả DAO thành công");
+        } catch (Exception e) {
+            logger.error("❌ Lỗi khi khởi tạo DAO", e);
+            JOptionPane.showMessageDialog(this, 
+                "Lỗi khi kết nối database: " + e.getMessage(), 
+                "Lỗi Database", 
+                JOptionPane.ERROR_MESSAGE);
+        }
     }
     
     private void initializeData() {
         yeuCauList = new ArrayList<>();
+        filteredYeuCauList = new ArrayList<>();
         thietBiList = new ArrayList<>();
         nhanVienList = new ArrayList<>();
         phongBanList = new ArrayList<>();
+        capPhatList = new ArrayList<>();
         
-        // Mock data for testing
-        initializeMockData();
+        // Load data from database
+        loadDataFromDatabase();
     }
     
-    private void initializeMockData() {
-        // Mock PhongBan data
-        phongBanList.add(new PhongBan("1", "Phòng IT", "Phòng Công nghệ thông tin"));
-        phongBanList.add(new PhongBan("2", "Phòng Kế toán", "Phòng Kế toán và Tài chính"));
-        phongBanList.add(new PhongBan("3", "Phòng Nhân sự", "Phòng Quản lý Nhân sự"));
+    private void loadDataFromDatabase() {
+        try {
+            // Load all data from database
+            yeuCauList = yeuCauDAO.getAllYeuCau();
+            thietBiList = thietBiDAO.findAll();
+            capPhatList = capPhatDAO.getAllCapPhat();
+            
+            // Mock data for NhanVien and PhongBan (có thể thay bằng DAO thực tế)
+            initializeMockNhanVienPhongBan();
+            
+            logger.info("Đã tải dữ liệu từ database: {} yêu cầu, {} thiết bị, {} cấp phát", 
+                yeuCauList.size(), thietBiList.size(), capPhatList.size());
+            
+        } catch (Exception e) {
+            logger.error("Lỗi khi tải dữ liệu từ database", e);
+            JOptionPane.showMessageDialog(this, 
+                "Lỗi khi tải dữ liệu: " + e.getMessage(), 
+                "Lỗi Database", 
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    private void initializeMockNhanVienPhongBan() {
+        // Mock data for NhanVien and PhongBan (có thể thay bằng DAO thực tế)
+        nhanVienList.add(new NhanVien("NV001", "Nguyễn Văn An", "an.nguyen@company.com", 
+                "password", "0901234567", NhanVien.NhanVienRole.STAFF, "PB001"));
+        nhanVienList.add(new NhanVien("NV002", "Trần Thị Bình", "binh.tran@company.com", 
+                "password", "0901234568", NhanVien.NhanVienRole.STAFF, "PB002"));
+        nhanVienList.add(new NhanVien("NV003", "Lê Văn Cường", "cuong.le@company.com", 
+                "password", "0901234569", NhanVien.NhanVienRole.STAFF, "PB001"));
         
-        // Mock ThietBi data
-        thietBiList.add(new ThietBi(1L, "TB001", 1L, ThietBi.TrangThaiThietBi.TON_KHO, 
-                null, null, "Laptop Dell Inspiron 15", null, null));
-        thietBiList.add(new ThietBi(2L, "TB002", 2L, ThietBi.TrangThaiThietBi.TON_KHO, 
-                null, null, "Mouse Logitech MX Master", null, null));
-        thietBiList.add(new ThietBi(3L, "TB003", 1L, ThietBi.TrangThaiThietBi.DANG_CAP_PHAT, 
-                null, null, "MacBook Pro 13 inch", null, null));
-        
-        // Mock NhanVien data
-        nhanVienList.add(new NhanVien("NV001", "Nguyễn Văn A", "nva@company.com", 
-                "password", "0901234567", NhanVien.NhanVienRole.ADMIN, "1"));
-        nhanVienList.add(new NhanVien("NV002", "Trần Thị B", "ttb@company.com", 
-                "password", "0901234568", NhanVien.NhanVienRole.STAFF, "2"));
-        nhanVienList.add(new NhanVien("NV003", "Lê Văn C", "lvc@company.com", 
-                "password", "0901234569", NhanVien.NhanVienRole.STAFF, "1"));
-        
-        // Mock YeuCau data - Chỉ có trạng thái CHO_DUYET để admin có thể duyệt/từ chối
-        yeuCauList.add(new YeuCau(1L, 1L, "NV002", TrangThaiYeuCau.CHO_DUYET, 
-                "Cần laptop để làm dự án mới", 
-                LocalDateTime.now().minusDays(2), LocalDateTime.now().minusDays(2)));
-        yeuCauList.add(new YeuCau(2L, 2L, "NV003", TrangThaiYeuCau.CHO_DUYET, 
-                "Mouse cũ bị hỏng, cần thay thế", 
-                LocalDateTime.now().minusDays(1), LocalDateTime.now().minusDays(1)));
-        yeuCauList.add(new YeuCau(3L, 3L, "NV002", TrangThaiYeuCau.DA_DUYET, 
-                "Cần MacBook cho công việc design", 
-                LocalDateTime.now().minusDays(3), LocalDateTime.now().minusDays(1)));
-        yeuCauList.add(new YeuCau(4L, 1L, "NV003", TrangThaiYeuCau.TU_CHOI, 
-                "Yêu cầu laptop thứ 2", 
-                LocalDateTime.now().minusDays(4), LocalDateTime.now().minusDays(2)));
-        yeuCauList.add(new YeuCau(5L, 2L, "NV002", TrangThaiYeuCau.CHO_DUYET, 
-                "Mouse cho nhân viên mới", 
-                LocalDateTime.now().minusDays(5), LocalDateTime.now().minusDays(5)));
+        phongBanList.add(new PhongBan("PB001", "Phòng IT", "Phòng Công nghệ thông tin"));
+        phongBanList.add(new PhongBan("PB002", "Phòng Kế toán", "Phòng Kế toán và Tài chính"));
+        phongBanList.add(new PhongBan("PB003", "Phòng Nhân sự", "Phòng Quản lý Nhân sự"));
     }
     
     private void initializeComponents() {
@@ -360,28 +409,113 @@ public class AdminYeuCauPanel extends JPanel {
             .orElse("N/A");
     }
     
+    /**
+     * Cập nhật method approveRequest để lưu vào database với debug logging
+     */
     private void approveRequest(int row) {
         if (row >= 0 && row < filteredYeuCauList.size()) {
             YeuCau yeuCau = filteredYeuCauList.get(row);
             
             if (yeuCau.getTrangThai() == TrangThaiYeuCau.CHO_DUYET) {
-                // Update status
-                yeuCau.setTrangThai(TrangThaiYeuCau.DA_DUYET);
-                yeuCau.setNgayCapNhat(LocalDateTime.now());
-                
-                // Create CapPhat record (would be saved to database in real implementation)
-                @SuppressWarnings("unused")
-                CapPhat capPhat = new CapPhat(yeuCau.getId());
-                
-                // Show success message
-                LogoUtil.showMessageDialog(this, 
-                    "Yêu cầu đã được phê duyệt thành công!\nID Yêu cầu: " + yeuCau.getId(),
-                    "Phê duyệt thành công", 
-                    JOptionPane.INFORMATION_MESSAGE);
-                
-                // Refresh data
-                updateTable();
-                updateStatistics();
+                try {
+                    logger.info("=== BẮT ĐẦU PHÊ DUYỆT YÊU CẦU ===");
+                    logger.info("Yêu cầu ID: {}", yeuCau.getId());
+                    logger.info("Thiết bị ID: {}", yeuCau.getThietBiId());
+                    logger.info("Nhân viên ID: {}", yeuCau.getNhanVienId());
+                    
+                    // Kiểm tra database connection
+                    if (capPhatDAO == null) {
+                        logger.error("CapPhatDAO is NULL!");
+                        LogoUtil.showMessageDialog(this, 
+                            "Lỗi: CapPhatDAO chưa được khởi tạo",
+                            "Lỗi Database", 
+                            JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+                    
+                    // Update status in database
+                    logger.info("Cập nhật trạng thái yêu cầu...");
+                    yeuCau.setTrangThai(TrangThaiYeuCau.DA_DUYET);
+                    yeuCau.setNgayCapNhat(LocalDateTime.now());
+                    boolean yeuCauUpdated = yeuCauDAO.updateYeuCau(yeuCau);
+                    
+                    if (!yeuCauUpdated) {
+                        logger.error("Lỗi khi cập nhật trạng thái yêu cầu trong database");
+                        LogoUtil.showMessageDialog(this, 
+                            "Lỗi khi cập nhật trạng thái yêu cầu trong database",
+                            "Lỗi Database", 
+                            JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+                    
+                    logger.info("✅ Đã cập nhật trạng thái yêu cầu thành công");
+                    
+                    // Create CapPhat record and save to database
+                    logger.info("Tạo CapPhat record...");
+                    CapPhat capPhat = new CapPhat();
+                    capPhat.setYeuCauId(yeuCau.getId());
+                    capPhat.setNgayCap(LocalDateTime.now());
+                    capPhat.setNgayTra(null); // Chưa trả
+                    capPhat.setTinhTrangTra(null); // Chưa có tình trạng trả
+                    capPhat.setGhiChu("Thiết bị đã được cấp phát cho nhân viên");
+                    
+                    logger.info("CapPhat record details:");
+                    logger.info("  - YeuCauId: {}", capPhat.getYeuCauId());
+                    logger.info("  - NgayCap: {}", capPhat.getNgayCap());
+                    logger.info("  - NgayTra: {}", capPhat.getNgayTra());
+                    logger.info("  - TinhTrangTra: {}", capPhat.getTinhTrangTra());
+                    logger.info("  - GhiChu: {}", capPhat.getGhiChu());
+                    
+                    // Save to database
+                    logger.info("Lưu CapPhat vào database...");
+                    boolean capPhatSaved = capPhatDAO.createCapPhat(capPhat);
+                    
+                    if (!capPhatSaved) {
+                        logger.error("❌ Lỗi khi tạo lịch sử cấp phát trong database");
+                        LogoUtil.showMessageDialog(this, 
+                            "Lỗi khi tạo lịch sử cấp phát trong database",
+                            "Lỗi Database", 
+                            JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+                    
+                    logger.info("✅ Đã tạo CapPhat thành công: ID={}", capPhat.getId());
+                    
+                    // Update device status in database
+                    logger.info("Cập nhật trạng thái thiết bị...");
+                    updateThietBiStatus(yeuCau.getThietBiId(), ThietBi.TrangThaiThietBi.DANG_CAP_PHAT);
+                    
+                    // Add to local list for UI update
+                    capPhatList.add(capPhat);
+                    
+                    // Đồng bộ với LichSuCapPhatPanel nếu có
+                    if (lichSuCapPhatPanel != null) {
+                        lichSuCapPhatPanel.addCapPhat(capPhat);
+                    }
+                    
+                    // Show success message
+                    LogoUtil.showMessageDialog(this, 
+                        "Yêu cầu đã được phê duyệt thành công!\n" +
+                        "ID Yêu cầu: " + yeuCau.getId() + "\n" +
+                        "Đã tạo lịch sử cấp phát với ID: " + capPhat.getId() + "\n" +
+                        "Thiết bị đã được chuyển sang trạng thái 'Đang cấp phát'",
+                        "Phê duyệt thành công", 
+                        JOptionPane.INFORMATION_MESSAGE);
+                    
+                    logger.info("=== HOÀN THÀNH PHÊ DUYỆT YÊU CẦU ===");
+                    logger.info("Yêu cầu ID: {}, CapPhat ID: {}", yeuCau.getId(), capPhat.getId());
+                    
+                    // Refresh data
+                    updateTable();
+                    updateStatistics();
+                    
+                } catch (Exception e) {
+                    logger.error("❌ Lỗi khi phê duyệt yêu cầu", e);
+                    LogoUtil.showMessageDialog(this, 
+                        "Lỗi khi phê duyệt yêu cầu: " + e.getMessage(),
+                        "Lỗi Database", 
+                        JOptionPane.ERROR_MESSAGE);
+                }
             } else {
                 LogoUtil.showMessageDialog(this, 
                     "Chỉ có thể phê duyệt yêu cầu đang ở trạng thái 'Chờ duyệt'",
@@ -416,6 +550,82 @@ public class AdminYeuCauPanel extends JPanel {
                     JOptionPane.WARNING_MESSAGE);
             }
         }
+    }
+    
+    /**
+     * Cập nhật trạng thái thiết bị
+     */
+    private void updateThietBiStatus(Long thietBiId, ThietBi.TrangThaiThietBi newStatus) {
+        try {
+            ThietBi thietBi = thietBiDAO.findById(thietBiId);
+            if (thietBi != null) {
+                thietBi.setTrangThai(newStatus);
+                boolean updated = thietBiDAO.update(thietBi);
+                if (updated) {
+                    logger.info("Đã cập nhật trạng thái thiết bị: ID={}, Trạng thái={}", 
+                        thietBiId, newStatus);
+                } else {
+                    logger.error("Lỗi khi cập nhật trạng thái thiết bị: ID={}", thietBiId);
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Lỗi khi cập nhật trạng thái thiết bị", e);
+        }
+    }
+    
+    /**
+     * Lấy danh sách lịch sử cấp phát (để sử dụng trong LichSuCapPhatPanel)
+     */
+    public List<CapPhat> getCapPhatList() {
+        return capPhatList;
+    }
+    
+    public List<YeuCau> getYeuCauList() {
+        return yeuCauList;
+    }
+    
+    public List<ThietBi> getThietBiList() {
+        return thietBiList;
+    }
+    
+    public List<NhanVien> getNhanVienList() {
+        return nhanVienList;
+    }
+    
+    public List<PhongBan> getPhongBanList() {
+        return phongBanList;
+    }
+    
+    /**
+     * Thêm lịch sử cấp phát mới
+     */
+    public void addCapPhat(CapPhat capPhat) {
+        capPhatList.add(capPhat);
+    }
+    
+    /**
+     * Đồng bộ dữ liệu giữa AdminYeuCauPanel và LichSuCapPhatPanel
+     */
+    public void syncDataBetweenPanels() {
+        if (this != null && lichSuCapPhatPanel != null) {
+            // Cập nhật dữ liệu từ AdminYeuCauPanel sang LichSuCapPhatPanel
+            lichSuCapPhatPanel.updateDataFromAdminPanel(
+                this.getCapPhatList(),
+                this.getYeuCauList(),
+                this.getThietBiList(),
+                this.getNhanVienList(),
+                this.getPhongBanList()
+            );
+        }
+    }
+    
+    /**
+     * Thông báo dữ liệu đã thay đổi (để MainFrame có thể đồng bộ)
+     */
+    private void notifyDataChanged() {
+        // Có thể thêm observer pattern hoặc callback ở đây
+        // Hiện tại chỉ log để debug
+        System.out.println("Dữ liệu đã thay đổi - cần đồng bộ với LichSuCapPhatPanel");
     }
     
     // Custom renderer for action buttons
@@ -580,5 +790,21 @@ public class AdminYeuCauPanel extends JPanel {
             
             return c;
         }
+    }
+
+    /**
+     * Set reference to LichSuCapPhatPanel for synchronization
+     */
+    public void setLichSuCapPhatPanel(LichSuCapPhatPanel lichSuCapPhatPanel) {
+        this.lichSuCapPhatPanel = lichSuCapPhatPanel;
+    }
+    
+    /**
+     * Refresh data from database
+     */
+    public void refreshData() {
+        loadDataFromDatabase();
+        loadData();
+        logger.info("Đã refresh dữ liệu từ database");
     }
 }

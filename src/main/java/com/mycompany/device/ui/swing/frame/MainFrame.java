@@ -12,6 +12,14 @@ import com.mycompany.device.ui.swing.panel.YeuCauPanel;
 import com.mycompany.device.ui.swing.panel.AdminYeuCauPanel;
 import com.mycompany.device.ui.swing.panel.LichSuCapPhatPanel;
 import com.mycompany.device.ui.swing.panel.HoSoCaNhanPanel;
+import com.mycompany.device.dao.PhongBanDAO;
+import com.mycompany.device.dao.NhanVienDAO;
+import com.mycompany.device.dao.ThietBiDAO;
+import com.mycompany.device.dao.CapPhatDAO;
+import com.mycompany.device.dao.impl.PhongBanDAOMySQLImpl;
+import com.mycompany.device.dao.impl.NhanVienDAOMySQLImpl;
+import com.mycompany.device.dao.impl.ThietBiDAOMySQLImpl;
+import com.mycompany.device.dao.impl.CapPhatDAOMySQLImpl;
 import com.mycompany.device.util.LogoUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,6 +61,12 @@ public class MainFrame extends JFrame {
     // MVC Controllers
     private PhongBanController phongBanController;
     private AuthController authController;
+    
+    // DAO instances for dashboard statistics
+    private PhongBanDAO phongBanDAO;
+    private NhanVienDAO nhanVienDAO;
+    private ThietBiDAO thietBiDAO;
+    private CapPhatDAO capPhatDAO;
     
     // Menu items
     private JPanel selectedMenuItem = null;
@@ -124,6 +138,9 @@ public class MainFrame extends JFrame {
         setLocationRelativeTo(null);
         setMinimumSize(new Dimension(1000, 700));
         
+        // Initialize DAOs for dashboard statistics
+        initializeDAOs();
+        
         // Initialize panels
         phongBanPanel = new PhongBanPanel();
         nhanVienPanel = new NhanVienPanel();
@@ -173,6 +190,21 @@ public class MainFrame extends JFrame {
         statusLabel.setBackground(Color.WHITE);
         
         logger.info("Đã khởi tạo tất cả components");
+    }
+    
+    /**
+     * Initialize DAOs for dashboard statistics
+     */
+    private void initializeDAOs() {
+        try {
+            phongBanDAO = new PhongBanDAOMySQLImpl();
+            nhanVienDAO = new NhanVienDAOMySQLImpl();
+            thietBiDAO = new ThietBiDAOMySQLImpl();
+            capPhatDAO = new CapPhatDAOMySQLImpl();
+            logger.info("Đã khởi tạo các DAO cho dashboard statistics");
+        } catch (Exception e) {
+            logger.error("Lỗi khi khởi tạo DAO cho dashboard", e);
+        }
     }
     
     /**
@@ -548,13 +580,71 @@ public class MainFrame extends JFrame {
         statsPanel.setBackground(MAIN_BACKGROUND_COLOR);
         statsPanel.setBorder(BorderFactory.createEmptyBorder(50, 50, 50, 50));
         
+        // Load statistics from database
+        String phongBanCount = getPhongBanCount();
+        String nhanVienCount = getNhanVienCount();
+        String thietBiCount = getThietBiCount();
+        String capPhatCount = getCapPhatCount();
+        
         // Stat cards
-        statsPanel.add(createStatCard("🏢", "Phòng ban", "6", "Tổng số phòng ban"));
-        statsPanel.add(createStatCard("👥", "Nhân viên", "25", "Tổng số nhân viên"));
-        statsPanel.add(createStatCard("💻", "Thiết bị", "120", "Tổng số thiết bị"));
-        statsPanel.add(createStatCard("📊", "Báo cáo", "8", "Báo cáo trong tháng"));
+        statsPanel.add(createStatCard("🏢", "Phòng ban", phongBanCount, "Tổng số phòng ban"));
+        statsPanel.add(createStatCard("👥", "Nhân viên", nhanVienCount, "Tổng số nhân viên"));
+        statsPanel.add(createStatCard("💻", "Thiết bị", thietBiCount, "Tổng số thiết bị"));
+        statsPanel.add(createStatCard("📊", "Cấp phát", capPhatCount, "Tổng số cấp phát"));
         
         return statsPanel;
+    }
+    
+    /**
+     * Get phong ban count from database
+     */
+    private String getPhongBanCount() {
+        try {
+            int count = phongBanDAO.countPhongBan();
+            return String.valueOf(count);
+        } catch (Exception e) {
+            logger.error("Lỗi khi đếm số phòng ban", e);
+            return "0";
+        }
+    }
+    
+    /**
+     * Get nhan vien count from database
+     */
+    private String getNhanVienCount() {
+        try {
+            int count = nhanVienDAO.countNhanVien();
+            return String.valueOf(count);
+        } catch (Exception e) {
+            logger.error("Lỗi khi đếm số nhân viên", e);
+            return "0";
+        }
+    }
+    
+    /**
+     * Get thiet bi count from database
+     */
+    private String getThietBiCount() {
+        try {
+            int count = thietBiDAO.findAll().size();
+            return String.valueOf(count);
+        } catch (Exception e) {
+            logger.error("Lỗi khi đếm số thiết bị", e);
+            return "0";
+        }
+    }
+    
+    /**
+     * Get cap phat count from database
+     */
+    private String getCapPhatCount() {
+        try {
+            int count = capPhatDAO.countCapPhat();
+            return String.valueOf(count);
+        } catch (Exception e) {
+            logger.error("Lỗi khi đếm số cấp phát", e);
+            return "0";
+        }
     }
     
     /**
@@ -718,5 +808,21 @@ public class MainFrame extends JFrame {
         // Example: If you need to load data for the main frame,
         // you would call methods from phongBanController or nhanVienController
         // For now, it's empty as per the original code.
+    }
+
+    /**
+     * Đồng bộ dữ liệu giữa AdminYeuCauPanel và LichSuCapPhatPanel
+     */
+    public void syncDataBetweenPanels() {
+        if (adminYeuCauPanel != null && lichSuCapPhatPanel != null) {
+            // Cập nhật dữ liệu từ AdminYeuCauPanel sang LichSuCapPhatPanel
+            lichSuCapPhatPanel.updateDataFromAdminPanel(
+                adminYeuCauPanel.getCapPhatList(),
+                adminYeuCauPanel.getYeuCauList(),
+                adminYeuCauPanel.getThietBiList(),
+                adminYeuCauPanel.getNhanVienList(),
+                adminYeuCauPanel.getPhongBanList()
+            );
+        }
     }
 }

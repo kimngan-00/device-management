@@ -5,6 +5,16 @@ import com.mycompany.device.model.ThietBi;
 import com.mycompany.device.model.YeuCau;
 import com.mycompany.device.model.NhanVien;
 import com.mycompany.device.model.PhongBan;
+import com.mycompany.device.dao.CapPhatDAO;
+import com.mycompany.device.dao.ThietBiDAO;
+import com.mycompany.device.dao.YeuCauDAO;
+import com.mycompany.device.dao.NhanVienDAO;
+import com.mycompany.device.dao.PhongBanDAO;
+import com.mycompany.device.dao.impl.CapPhatDAOMySQLImpl;
+import com.mycompany.device.dao.impl.ThietBiDAOMySQLImpl;
+import com.mycompany.device.dao.impl.YeuCauDAOMySQLImpl;
+import com.mycompany.device.dao.impl.NhanVienDAOMySQLImpl;
+import com.mycompany.device.dao.impl.PhongBanDAOMySQLImpl;
 import com.mycompany.device.util.LogoUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,7 +68,15 @@ public class LichSuCapPhatPanel extends JPanel {
     private List<NhanVien> nhanVienList;
     private List<PhongBan> phongBanList;
     
+    // DAO instances
+    private CapPhatDAO capPhatDAO;
+    private ThietBiDAO thietBiDAO;
+    private YeuCauDAO yeuCauDAO;
+    private NhanVienDAO nhanVienDAO;
+    private PhongBanDAO phongBanDAO;
+    
     public LichSuCapPhatPanel() {
+        initializeDAOs();
         initializeData();
         initializeComponents();
         setupLayout();
@@ -68,6 +86,23 @@ public class LichSuCapPhatPanel extends JPanel {
         logger.info("LichSuCapPhatPanel đã được khởi tạo thành công");
     }
     
+    private void initializeDAOs() {
+        try {
+            capPhatDAO = new CapPhatDAOMySQLImpl();
+            thietBiDAO = new ThietBiDAOMySQLImpl();
+            yeuCauDAO = new YeuCauDAOMySQLImpl();
+            nhanVienDAO = new NhanVienDAOMySQLImpl();
+            phongBanDAO = new PhongBanDAOMySQLImpl();
+            logger.info("Đã khởi tạo các DAO thành công");
+        } catch (Exception e) {
+            logger.error("Lỗi khi khởi tạo DAO", e);
+            JOptionPane.showMessageDialog(this, 
+                "Lỗi khi kết nối database: " + e.getMessage(), 
+                "Lỗi Database", 
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
     private void initializeData() {
         capPhatList = new ArrayList<>();
         thietBiList = new ArrayList<>();
@@ -75,173 +110,32 @@ public class LichSuCapPhatPanel extends JPanel {
         nhanVienList = new ArrayList<>();
         phongBanList = new ArrayList<>();
         
-        // Mock data
-        initializeMockData();
+        // Load data from database
+        loadDataFromDatabase();
     }
     
-    private void initializeMockData() {
-        // Mock PhongBan data
-        phongBanList.add(new PhongBan("PB001", "Phòng IT", "Phòng Công nghệ thông tin"));
-        phongBanList.add(new PhongBan("PB002", "Phòng Kế toán", "Phòng Kế toán và Tài chính"));
-        phongBanList.add(new PhongBan("PB003", "Phòng Nhân sự", "Phòng Quản lý Nhân sự"));
-        phongBanList.add(new PhongBan("PB004", "Phòng Marketing", "Phòng Marketing và Truyền thông"));
-        phongBanList.add(new PhongBan("PB005", "Phòng R&D", "Phòng Nghiên cứu và Phát triển"));
-        phongBanList.add(new PhongBan("PB006", "Phòng Kinh doanh", "Phòng Kinh doanh và Bán hàng"));
-        
-        // Mock NhanVien data
-        nhanVienList.add(new NhanVien("NV001", "Nguyễn Văn An", "an.nguyen@company.com", 
-                "password", "0901234567", NhanVien.NhanVienRole.STAFF, "PB001"));
-        nhanVienList.add(new NhanVien("NV002", "Trần Thị Bình", "binh.tran@company.com", 
-                "password", "0901234568", NhanVien.NhanVienRole.STAFF, "PB002"));
-        nhanVienList.add(new NhanVien("NV003", "Lê Văn Cường", "cuong.le@company.com", 
-                "password", "0901234569", NhanVien.NhanVienRole.STAFF, "PB001"));
-        nhanVienList.add(new NhanVien("NV004", "Phạm Thị Dung", "dung.pham@company.com", 
-                "password", "0901234570", NhanVien.NhanVienRole.STAFF, "PB003"));
-        nhanVienList.add(new NhanVien("NV005", "Hoàng Văn Em", "em.hoang@company.com", 
-                "password", "0901234571", NhanVien.NhanVienRole.STAFF, "PB004"));
-        nhanVienList.add(new NhanVien("NV006", "Võ Thị Phương", "phuong.vo@company.com", 
-                "password", "0901234572", NhanVien.NhanVienRole.STAFF, "PB005"));
-        nhanVienList.add(new NhanVien("NV007", "Đặng Minh Quân", "quan.dang@company.com", 
-                "password", "0901234573", NhanVien.NhanVienRole.STAFF, "PB006"));
-        nhanVienList.add(new NhanVien("NV008", "Ngô Thị Thu", "thu.ngo@company.com", 
-                "password", "0901234574", NhanVien.NhanVienRole.STAFF, "PB002"));
-        nhanVienList.add(new NhanVien("NV009", "Bùi Văn Sơn", "son.bui@company.com", 
-                "password", "0901234575", NhanVien.NhanVienRole.STAFF, "PB003"));
-        nhanVienList.add(new NhanVien("NV010", "Lý Thị Mai", "mai.ly@company.com", 
-                "password", "0901234576", NhanVien.NhanVienRole.STAFF, "PB001"));
-        
-        // Mock ThietBi data
-        thietBiList.add(new ThietBi(1L, "TB001", 1L, ThietBi.TrangThaiThietBi.DANG_CAP_PHAT, 
-                null, null, "Laptop Dell Inspiron 15 3000", null, null));
-        thietBiList.add(new ThietBi(2L, "TB002", 2L, ThietBi.TrangThaiThietBi.TON_KHO, 
-                null, null, "Mouse Logitech MX Master 3", null, null));
-        thietBiList.add(new ThietBi(3L, "TB003", 1L, ThietBi.TrangThaiThietBi.DANG_CAP_PHAT, 
-                null, null, "MacBook Pro 13 inch M1", null, null));
-        thietBiList.add(new ThietBi(4L, "TB004", 3L, ThietBi.TrangThaiThietBi.TON_KHO, 
-                null, null, "iPhone 13 Pro Max", null, null));
-        thietBiList.add(new ThietBi(5L, "TB005", 2L, ThietBi.TrangThaiThietBi.DANG_CAP_PHAT, 
-                null, null, "Samsung Galaxy Tab S8", null, null));
-        thietBiList.add(new ThietBi(6L, "TB006", 1L, ThietBi.TrangThaiThietBi.TON_KHO, 
-                null, null, "HP EliteBook 840 G8", null, null));
-        thietBiList.add(new ThietBi(7L, "TB007", 4L, ThietBi.TrangThaiThietBi.DANG_CAP_PHAT, 
-                null, null, "Canon EOS R5 Camera", null, null));
-        thietBiList.add(new ThietBi(8L, "TB008", 2L, ThietBi.TrangThaiThietBi.TON_KHO, 
-                null, null, "Keyboard Mechanical RGB", null, null));
-        thietBiList.add(new ThietBi(9L, "TB009", 3L, ThietBi.TrangThaiThietBi.DANG_CAP_PHAT, 
-                null, null, "iPad Pro 12.9 inch M2", null, null));
-        thietBiList.add(new ThietBi(10L, "TB010", 1L, ThietBi.TrangThaiThietBi.TON_KHO, 
-                null, null, "ASUS ROG Gaming Laptop", null, null));
-        thietBiList.add(new ThietBi(11L, "TB011", 2L, ThietBi.TrangThaiThietBi.DANG_CAP_PHAT, 
-                null, null, "Monitor Dell 27 inch 4K", null, null));
-        thietBiList.add(new ThietBi(12L, "TB012", 5L, ThietBi.TrangThaiThietBi.TON_KHO, 
-                null, null, "Projector Epson EB-2250U", null, null));
-        
-        // Mock YeuCau data
-        yeuCauList.add(new YeuCau(1L, 1L, "NV001", YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
-                "Cần laptop cho công việc lập trình", 
-                LocalDateTime.now().minusDays(10), LocalDateTime.now().minusDays(8)));
-        yeuCauList.add(new YeuCau(2L, 2L, "NV002", YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
-                "Mouse cũ bị hỏng, cần thay thế", 
-                LocalDateTime.now().minusDays(15), LocalDateTime.now().minusDays(12)));
-        yeuCauList.add(new YeuCau(3L, 3L, "NV003", YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
-                "Cần MacBook cho công việc design", 
-                LocalDateTime.now().minusDays(20), LocalDateTime.now().minusDays(18)));
-        yeuCauList.add(new YeuCau(4L, 4L, "NV004", YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
-                "iPhone để test ứng dụng mobile", 
-                LocalDateTime.now().minusDays(7), LocalDateTime.now().minusDays(5)));
-        yeuCauList.add(new YeuCau(5L, 5L, "NV005", YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
-                "Tablet cho presentation", 
-                LocalDateTime.now().minusDays(12), LocalDateTime.now().minusDays(10)));
-        yeuCauList.add(new YeuCau(6L, 6L, "NV006", YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
-                "Laptop cho nhân viên mới", 
-                LocalDateTime.now().minusDays(25), LocalDateTime.now().minusDays(23)));
-        yeuCauList.add(new YeuCau(7L, 7L, "NV007", YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
-                "Camera để chụp sản phẩm", 
-                LocalDateTime.now().minusDays(30), LocalDateTime.now().minusDays(28)));
-        yeuCauList.add(new YeuCau(8L, 1L, "NV008", YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
-                "Laptop Dell thứ 2 cho team", 
-                LocalDateTime.now().minusDays(5), LocalDateTime.now().minusDays(3)));
-        yeuCauList.add(new YeuCau(9L, 9L, "NV009", YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
-                "iPad cho manager", 
-                LocalDateTime.now().minusDays(18), LocalDateTime.now().minusDays(16)));
-        yeuCauList.add(new YeuCau(10L, 11L, "NV010", YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
-                "Monitor để làm việc", 
-                LocalDateTime.now().minusDays(14), LocalDateTime.now().minusDays(12)));
-        yeuCauList.add(new YeuCau(11L, 3L, "NV001", YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
-                "MacBook thứ 2 cho dự án", 
-                LocalDateTime.now().minusDays(8), LocalDateTime.now().minusDays(6)));
-        yeuCauList.add(new YeuCau(12L, 2L, "NV008", YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
-                "Mouse backup", 
-                LocalDateTime.now().minusDays(22), LocalDateTime.now().minusDays(20)));
-        
-        // Mock CapPhat data - Tuân thủ logic: 1 thiết bị chỉ có tối đa 1 lượt cấp phát chưa trả
-        
-        // Thiết bị 1 (Laptop Dell) - Đã trả gần đây
-        capPhatList.add(new CapPhat(1L, 1L, LocalDateTime.now().minusDays(8), 
-                LocalDateTime.now().minusDays(2), CapPhat.TinhTrangTra.TOT, "Hoạt động tốt"));
-        
-        // Thiết bị 2 (Mouse Logitech) - Đang được sử dụng
-        capPhatList.add(new CapPhat(2L, 2L, LocalDateTime.now().minusDays(12), 
-                null, null, null));
-        
-        // Thiết bị 3 (MacBook Pro) - Đang được sử dụng 
-        capPhatList.add(new CapPhat(3L, 3L, LocalDateTime.now().minusDays(18), 
-                null, null, null));
-        
-        // Thiết bị 4 (iPhone 13) - Đã trả
-        capPhatList.add(new CapPhat(4L, 4L, LocalDateTime.now().minusDays(5), 
-                LocalDateTime.now().minusDays(1), CapPhat.TinhTrangTra.TRAY_XUOC, "Có một vài trầy xước nhỏ"));
-        
-        // Thiết bị 5 (iPad Pro) - Đã trả
-        capPhatList.add(new CapPhat(5L, 5L, LocalDateTime.now().minusDays(10), 
-                LocalDateTime.now().minusDays(3), CapPhat.TinhTrangTra.TOT, "Trả đúng hạn"));
-        
-        // Thiết bị 6 (HP EliteBook) - Đã trả
-        capPhatList.add(new CapPhat(6L, 6L, LocalDateTime.now().minusDays(23), 
-                LocalDateTime.now().minusDays(15), CapPhat.TinhTrangTra.TOT, "Trả đúng hạn"));
-        
-        // Thiết bị 7 (Canon Camera) - Đang được sử dụng
-        capPhatList.add(new CapPhat(7L, 7L, LocalDateTime.now().minusDays(28), 
-                null, null, null));
-        
-        // Thiết bị 8 (Laptop Dell thứ 2) - Đã trả
-        capPhatList.add(new CapPhat(8L, 8L, LocalDateTime.now().minusDays(3), 
-                LocalDateTime.now().minusDays(1), CapPhat.TinhTrangTra.TOT, "Trả đúng hạn"));
-        
-        // Thiết bị 9 (iPad Air) - Đã trả
-        capPhatList.add(new CapPhat(9L, 9L, LocalDateTime.now().minusDays(16), 
-                LocalDateTime.now().minusDays(8), CapPhat.TinhTrangTra.TOT, "Tình trạng tốt"));
-        
-        // Thiết bị 10 (ASUS ROG) - Đang được sử dụng
-        capPhatList.add(new CapPhat(10L, 10L, LocalDateTime.now().minusDays(12), 
-                null, null, null));
-        
-        // Thiết bị 11 (Monitor Dell) - Đã trả
-        capPhatList.add(new CapPhat(11L, 11L, LocalDateTime.now().minusDays(6), 
-                LocalDateTime.now().minusDays(2), CapPhat.TinhTrangTra.TOT, "Hoạt động bình thường"));
-        
-        // Thiết bị 12 (Projector Epson) - Đã trả
-        capPhatList.add(new CapPhat(12L, 12L, LocalDateTime.now().minusDays(20), 
-                LocalDateTime.now().minusDays(12), CapPhat.TinhTrangTra.TRAY_XUOC, "Một vài vết xước nhỏ"));
-        
-        // Thêm các lượt cấp phát cũ cho cùng thiết bị (tất cả đã trả để không vi phạm logic)
-        capPhatList.add(new CapPhat(13L, 1L, LocalDateTime.now().minusDays(35), 
-                LocalDateTime.now().minusDays(25), CapPhat.TinhTrangTra.TOT, "Lần cấp phát trước"));
-        capPhatList.add(new CapPhat(14L, 3L, LocalDateTime.now().minusDays(45), 
-                LocalDateTime.now().minusDays(30), CapPhat.TinhTrangTra.HU_HONG, "Pin hỏng"));
-        capPhatList.add(new CapPhat(15L, 2L, LocalDateTime.now().minusDays(50), 
-                LocalDateTime.now().minusDays(40), CapPhat.TinhTrangTra.TOT, "Hoạt động bình thường"));
-        
-        // Thêm một vài lượt cấp phát khác cho thiết bị 1 (đã trả)
-        capPhatList.add(new CapPhat(16L, 1L, LocalDateTime.now().minusDays(60), 
-                LocalDateTime.now().minusDays(50), CapPhat.TinhTrangTra.TOT, "Lần cấp phát cũ hơn"));
-        capPhatList.add(new CapPhat(17L, 4L, LocalDateTime.now().minusDays(25), 
-                LocalDateTime.now().minusDays(20), CapPhat.TinhTrangTra.TOT, "Sử dụng tốt"));
-        capPhatList.add(new CapPhat(18L, 5L, LocalDateTime.now().minusDays(40), 
-                LocalDateTime.now().minusDays(35), CapPhat.TinhTrangTra.TOT, "Hoạt động ổn định"));
-        
-        // Validate business logic after loading mock data
-        validateBusinessLogic();
+    private void loadDataFromDatabase() {
+        try {
+            // Load all data from database
+            capPhatList = capPhatDAO.getAllCapPhat();
+            thietBiList = thietBiDAO.findAll();
+            yeuCauList = yeuCauDAO.getAllYeuCau();
+            nhanVienList = nhanVienDAO.getAllNhanVien();
+            phongBanList = phongBanDAO.getAllPhongBan();
+            
+            logger.info("Đã tải dữ liệu từ database: {} cấp phát, {} thiết bị, {} yêu cầu, {} nhân viên, {} phòng ban", 
+                capPhatList.size(), thietBiList.size(), yeuCauList.size(), nhanVienList.size(), phongBanList.size());
+            
+            // Validate business logic after loading data
+            validateBusinessLogic();
+            
+        } catch (Exception e) {
+            logger.error("Lỗi khi tải dữ liệu từ database", e);
+            JOptionPane.showMessageDialog(this, 
+                "Lỗi khi tải dữ liệu: " + e.getMessage(), 
+                "Lỗi Database", 
+                JOptionPane.ERROR_MESSAGE);
+        }
     }
     
     private void initializeComponents() {
@@ -646,7 +540,6 @@ public class LichSuCapPhatPanel extends JPanel {
     }
     
     private NhanVien findNhanVienById(String id) {
-        // For mock data, we use position in list as ID
         if (id != null) {
             return nhanVienList.stream()
                 .filter(nv -> nv.getMaNhanVien().equals(id))
@@ -819,5 +712,42 @@ public class LichSuCapPhatPanel extends JPanel {
             
             return this;
         }
+    }
+
+    /**
+     * Thêm cấp phát mới vào danh sách và cập nhật UI
+     */
+    public void addCapPhat(CapPhat capPhat) {
+        if (capPhat != null) {
+            capPhatList.add(capPhat);
+            loadLichSuData(); // Refresh UI
+            logger.info("Đã thêm cấp phát mới: ID={}", capPhat.getId());
+        }
+    }
+
+    /**
+     * Cập nhật dữ liệu từ AdminPanel
+     */
+    public void updateDataFromAdminPanel(List<CapPhat> capPhatList, List<YeuCau> yeuCauList, 
+                                       List<ThietBi> thietBiList, List<NhanVien> nhanVienList, 
+                                       List<PhongBan> phongBanList) {
+        if (capPhatList != null) this.capPhatList = capPhatList;
+        if (yeuCauList != null) this.yeuCauList = yeuCauList;
+        if (thietBiList != null) this.thietBiList = thietBiList;
+        if (nhanVienList != null) this.nhanVienList = nhanVienList;
+        if (phongBanList != null) this.phongBanList = phongBanList;
+        
+        loadLichSuData(); // Refresh UI
+        logger.info("Đã cập nhật dữ liệu từ AdminPanel");
+    }
+    
+    /**
+     * Refresh data from database
+     */
+    public void refreshData() {
+        loadDataFromDatabase();
+        loadLichSuData();
+        loadThietBiComboBox();
+        logger.info("Đã refresh dữ liệu từ database");
     }
 }

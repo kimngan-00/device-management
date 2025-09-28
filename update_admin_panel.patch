@@ -1,0 +1,29 @@
+--- a/src/main/java/com/mycompany/device/ui/swing/panel/AdminYeuCauPanel.java
++++ b/src/main/java/com/mycompany/device/ui/swing/panel/AdminYeuCauPanel.java
+@@ -7,6 +7,8 @@
+ import com.mycompany.device.model.NhanVien;
+ import com.mycompany.device.model.PhongBan;
+ import com.mycompany.device.util.LogoUtil;
++import com.mycompany.device.service.CapPhatService;
++import com.mycompany.device.service.impl.CapPhatServiceImpl;
+ 
+ import javax.swing.*;
+ import javax.swing.border.TitledBorder;
+@@ -18,6 +20,8 @@
+ import java.awt.event.ActionListener;
+ import java.time.LocalDateTime;
+ import java.time.format.DateTimeFormatter;
++import org.slf4j.Logger;
++import org.slf4j.LoggerFactory;
+ import java.util.ArrayList;
+ import java.util.List;
+ import java.util.stream.Collectors;
+@@ -28,6 +32,8 @@
+  */
+ public class AdminYeuCauPanel extends JPanel {
+     
++    private static final Logger logger = LoggerFactory.getLogger(AdminYeuCauPanel.class);
++    
+     // Constants for UI styling
+     private static final Font TITLE_FONT = new Font("Segoe UI", Font.BOLD, 24);
+     private static final Font LABEL_FONT = new Font("Segoe UI", Font.PLAIN, 14);
