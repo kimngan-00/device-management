@@ -53,7 +53,7 @@ public class YeuCauLogger implements YeuCauObserver {
         
         if (!oldYeuCau.getNhanVienId().equals(yeuCau.getNhanVienId())) {
             if (changes.length() > 0) changes.append(", ");
-            changes.append(String.format("Nhân viên: %d -> %d", oldYeuCau.getNhanVienId(), yeuCau.getNhanVienId()));
+            changes.append(String.format("Nhân viên: '%s' -> '%s'", oldYeuCau.getNhanVienId(), yeuCau.getNhanVienId()));
         }
         
         if (changes.length() > 0) {

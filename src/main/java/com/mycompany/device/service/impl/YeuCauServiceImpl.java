@@ -60,7 +60,7 @@ public class YeuCauServiceImpl implements YeuCauService {
     }
     
     @Override
-    public boolean taoYeuCau(Long thietBiId, Long nhanVienId, String lyDo) {
+    public boolean taoYeuCau(Long thietBiId, String nhanVienId, String lyDo) {
         logger.info("Bắt đầu tạo yêu cầu: thietBiId={}, nhanVienId={}", thietBiId, nhanVienId);
         
         // Validate input
@@ -77,7 +77,7 @@ public class YeuCauServiceImpl implements YeuCauService {
             logger.warn("Object yêu cầu không hợp lệ");
             return false;
         }
-        
+        System.out.println("nhanVienId: " + yeuCau);
         // Gọi DAO để tạo
         boolean result = yeuCauDAO.createYeuCau(yeuCau);
         
@@ -98,12 +98,12 @@ public class YeuCauServiceImpl implements YeuCauService {
             logger.warn("Không thể tạo yêu cầu: object null");
             return false;
         }
-        
+        System.out.println("yeuCau line 101: " + yeuCau);
         return taoYeuCau(yeuCau.getThietBiId(), yeuCau.getNhanVienId(), yeuCau.getLyDo());
     }
     
     @Override
-    public boolean capNhatYeuCau(Long yeuCauId, Long thietBiId, Long nhanVienId, String lyDo) {
+    public boolean capNhatYeuCau(Long yeuCauId, Long thietBiId, String nhanVienId, String lyDo) {
         logger.info("Bắt đầu cập nhật yêu cầu: ID={}", yeuCauId);
         
         // Validate input
@@ -251,7 +251,7 @@ public class YeuCauServiceImpl implements YeuCauService {
     }
     
     @Override
-    public List<YeuCau> timYeuCauTheoNhanVien(Long nhanVienId) {
+    public List<YeuCau> timYeuCauTheoNhanVien(String nhanVienId) {
         if (nhanVienId == null) {
             logger.warn("Không thể tìm yêu cầu: ID nhân viên không hợp lệ");
             return List.of();
@@ -352,7 +352,7 @@ public class YeuCauServiceImpl implements YeuCauService {
     }
     
     @Override
-    public int demSoLuongYeuCauCuaNhanVien(Long nhanVienId) {
+    public int demSoLuongYeuCauCuaNhanVien(String nhanVienId) {
         if (nhanVienId == null) {
             return 0;
         }
@@ -410,13 +410,13 @@ public class YeuCauServiceImpl implements YeuCauService {
     /**
      * Validate input cơ bản
      */
-    private boolean validateYeuCauInput(Long thietBiId, Long nhanVienId) {
+    private boolean validateYeuCauInput(Long thietBiId, String nhanVienId) {
         if (thietBiId == null || thietBiId <= 0) {
             logger.warn("ID thiết bị không hợp lệ");
             return false;
         }
         
-        if (nhanVienId == null || nhanVienId <= 0) {
+        if (nhanVienId == null) {
             logger.warn("ID nhân viên không hợp lệ");
             return false;
         }

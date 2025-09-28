@@ -43,7 +43,7 @@ public interface YeuCauDAO {
     /**
      * Tìm yêu cầu theo nhân viên
      */
-    List<YeuCau> findYeuCauByNhanVien(Long nhanVienId);
+    List<YeuCau> findYeuCauByNhanVien(String nhanVienId);
     
     /**
      * Tìm yêu cầu theo trạng thái
@@ -73,5 +73,5 @@ public interface YeuCauDAO {
     /**
      * Đếm số yêu cầu của nhân viên
      */
-    int countYeuCauByNhanVien(Long nhanVienId);
+    int countYeuCauByNhanVien(String nhanVienId);
 } 

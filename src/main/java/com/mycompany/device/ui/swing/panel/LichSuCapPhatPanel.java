@@ -137,40 +137,40 @@ public class LichSuCapPhatPanel extends JPanel {
                 null, null, "Projector Epson EB-2250U", null, null));
         
         // Mock YeuCau data
-        yeuCauList.add(new YeuCau(1L, 1L, 1L, YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
+        yeuCauList.add(new YeuCau(1L, 1L, "NV001", YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
                 "Cần laptop cho công việc lập trình", 
                 LocalDateTime.now().minusDays(10), LocalDateTime.now().minusDays(8)));
-        yeuCauList.add(new YeuCau(2L, 2L, 2L, YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
+        yeuCauList.add(new YeuCau(2L, 2L, "NV002", YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
                 "Mouse cũ bị hỏng, cần thay thế", 
                 LocalDateTime.now().minusDays(15), LocalDateTime.now().minusDays(12)));
-        yeuCauList.add(new YeuCau(3L, 3L, 3L, YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
+        yeuCauList.add(new YeuCau(3L, 3L, "NV003", YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
                 "Cần MacBook cho công việc design", 
                 LocalDateTime.now().minusDays(20), LocalDateTime.now().minusDays(18)));
-        yeuCauList.add(new YeuCau(4L, 4L, 4L, YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
+        yeuCauList.add(new YeuCau(4L, 4L, "NV004", YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
                 "iPhone để test ứng dụng mobile", 
                 LocalDateTime.now().minusDays(7), LocalDateTime.now().minusDays(5)));
-        yeuCauList.add(new YeuCau(5L, 5L, 5L, YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
+        yeuCauList.add(new YeuCau(5L, 5L, "NV005", YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
                 "Tablet cho presentation", 
                 LocalDateTime.now().minusDays(12), LocalDateTime.now().minusDays(10)));
-        yeuCauList.add(new YeuCau(6L, 6L, 6L, YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
+        yeuCauList.add(new YeuCau(6L, 6L, "NV006", YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
                 "Laptop cho nhân viên mới", 
                 LocalDateTime.now().minusDays(25), LocalDateTime.now().minusDays(23)));
-        yeuCauList.add(new YeuCau(7L, 7L, 7L, YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
+        yeuCauList.add(new YeuCau(7L, 7L, "NV007", YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
                 "Camera để chụp sản phẩm", 
                 LocalDateTime.now().minusDays(30), LocalDateTime.now().minusDays(28)));
-        yeuCauList.add(new YeuCau(8L, 1L, 8L, YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
+        yeuCauList.add(new YeuCau(8L, 1L, "NV008", YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
                 "Laptop Dell thứ 2 cho team", 
                 LocalDateTime.now().minusDays(5), LocalDateTime.now().minusDays(3)));
-        yeuCauList.add(new YeuCau(9L, 9L, 9L, YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
+        yeuCauList.add(new YeuCau(9L, 9L, "NV009", YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
                 "iPad cho manager", 
                 LocalDateTime.now().minusDays(18), LocalDateTime.now().minusDays(16)));
-        yeuCauList.add(new YeuCau(10L, 11L, 10L, YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
+        yeuCauList.add(new YeuCau(10L, 11L, "NV010", YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
                 "Monitor để làm việc", 
                 LocalDateTime.now().minusDays(14), LocalDateTime.now().minusDays(12)));
-        yeuCauList.add(new YeuCau(11L, 3L, 1L, YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
+        yeuCauList.add(new YeuCau(11L, 3L, "NV001", YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
                 "MacBook thứ 2 cho dự án", 
                 LocalDateTime.now().minusDays(8), LocalDateTime.now().minusDays(6)));
-        yeuCauList.add(new YeuCau(12L, 2L, 8L, YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
+        yeuCauList.add(new YeuCau(12L, 2L, "NV008", YeuCau.TrangThaiYeuCau.DA_CAP_PHAT, 
                 "Mouse backup", 
                 LocalDateTime.now().minusDays(22), LocalDateTime.now().minusDays(20)));
         
@@ -645,10 +645,13 @@ public class LichSuCapPhatPanel extends JPanel {
             .orElse(null);
     }
     
-    private NhanVien findNhanVienById(Long id) {
+    private NhanVien findNhanVienById(String id) {
         // For mock data, we use position in list as ID
-        if (id > 0 && id <= nhanVienList.size()) {
-            return nhanVienList.get(id.intValue() - 1);
+        if (id != null) {
+            return nhanVienList.stream()
+                .filter(nv -> nv.getMaNhanVien().equals(id))
+                .findFirst()
+                .orElse(null);
         }
         return null;
     }

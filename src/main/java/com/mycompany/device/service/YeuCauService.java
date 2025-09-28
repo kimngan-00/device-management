@@ -17,7 +17,7 @@ public interface YeuCauService {
      * @param lyDo Lý do yêu cầu (có thể null)
      * @return true nếu tạo thành công, false nếu thất bại
      */
-    boolean taoYeuCau(Long thietBiId, Long nhanVienId, String lyDo);
+    boolean taoYeuCau(Long thietBiId, String nhanVienId, String lyDo);
     
     /**
      * Tạo yêu cầu mới từ object
@@ -34,7 +34,7 @@ public interface YeuCauService {
      * @param lyDo Lý do mới (có thể null)
      * @return true nếu cập nhật thành công, false nếu thất bại
      */
-    boolean capNhatYeuCau(Long yeuCauId, Long thietBiId, Long nhanVienId, String lyDo);
+    boolean capNhatYeuCau(Long yeuCauId, Long thietBiId, String nhanVienId, String lyDo);
     
     /**
      * Cập nhật thông tin yêu cầu từ object
@@ -76,7 +76,7 @@ public interface YeuCauService {
      * @param nhanVienId ID nhân viên
      * @return List chứa các yêu cầu của nhân viên
      */
-    List<YeuCau> timYeuCauTheoNhanVien(Long nhanVienId);
+    List<YeuCau> timYeuCauTheoNhanVien(String nhanVienId);
     
     /**
      * Tìm yêu cầu theo trạng thái
@@ -124,7 +124,7 @@ public interface YeuCauService {
      * @param nhanVienId ID nhân viên
      * @return Số lượng yêu cầu của nhân viên
      */
-    int demSoLuongYeuCauCuaNhanVien(Long nhanVienId);
+    int demSoLuongYeuCauCuaNhanVien(String nhanVienId);
     
     /**
      * Validate thông tin yêu cầu

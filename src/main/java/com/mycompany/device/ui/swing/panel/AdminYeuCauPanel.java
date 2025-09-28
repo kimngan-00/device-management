@@ -97,19 +97,19 @@ public class AdminYeuCauPanel extends JPanel {
                 "password", "0901234569", NhanVien.NhanVienRole.STAFF, "1"));
         
         // Mock YeuCau data - Chỉ có trạng thái CHO_DUYET để admin có thể duyệt/từ chối
-        yeuCauList.add(new YeuCau(1L, 1L, 2L, TrangThaiYeuCau.CHO_DUYET, 
+        yeuCauList.add(new YeuCau(1L, 1L, "NV002", TrangThaiYeuCau.CHO_DUYET, 
                 "Cần laptop để làm dự án mới", 
                 LocalDateTime.now().minusDays(2), LocalDateTime.now().minusDays(2)));
-        yeuCauList.add(new YeuCau(2L, 2L, 3L, TrangThaiYeuCau.CHO_DUYET, 
+        yeuCauList.add(new YeuCau(2L, 2L, "NV003", TrangThaiYeuCau.CHO_DUYET, 
                 "Mouse cũ bị hỏng, cần thay thế", 
                 LocalDateTime.now().minusDays(1), LocalDateTime.now().minusDays(1)));
-        yeuCauList.add(new YeuCau(3L, 3L, 2L, TrangThaiYeuCau.DA_DUYET, 
+        yeuCauList.add(new YeuCau(3L, 3L, "NV002", TrangThaiYeuCau.DA_DUYET, 
                 "Cần MacBook cho công việc design", 
                 LocalDateTime.now().minusDays(3), LocalDateTime.now().minusDays(1)));
-        yeuCauList.add(new YeuCau(4L, 1L, 3L, TrangThaiYeuCau.TU_CHOI, 
+        yeuCauList.add(new YeuCau(4L, 1L, "NV003", TrangThaiYeuCau.TU_CHOI, 
                 "Yêu cầu laptop thứ 2", 
                 LocalDateTime.now().minusDays(4), LocalDateTime.now().minusDays(2)));
-        yeuCauList.add(new YeuCau(5L, 2L, 2L, TrangThaiYeuCau.CHO_DUYET, 
+        yeuCauList.add(new YeuCau(5L, 2L, "NV002", TrangThaiYeuCau.CHO_DUYET, 
                 "Mouse cho nhân viên mới", 
                 LocalDateTime.now().minusDays(5), LocalDateTime.now().minusDays(5)));
     }
@@ -339,26 +339,24 @@ public class AdminYeuCauPanel extends JPanel {
             .orElse("N/A");
     }
     
-    private String getNhanVienName(Long nhanVienId) {
+    private String getNhanVienName(String nhanVienId) {
         return nhanVienList.stream()
-            .filter(nv -> nv.getMaNhanVien().equals("NV" + String.format("%03d", nhanVienId)))
+            .filter(nv -> nv.getMaNhanVien().equals(nhanVienId))
             .findFirst()
             .map(NhanVien::getTenNhanVien)
             .orElse("N/A");
     }
     
-    private String getPhongBanName(Long nhanVienId) {
+    private String getPhongBanName(String nhanVienId) {
         return nhanVienList.stream()
-            .filter(nv -> nv.getMaNhanVien().equals("NV" + String.format("%03d", nhanVienId)))
+            .filter(nv -> nv.getMaNhanVien().equals(nhanVienId))
             .findFirst()
-            .map(nv -> {
-                String maPhongBan = nv.getMaPhongBan();
-                return phongBanList.stream()
-                    .filter(pb -> pb.getMaPhongBan().equals(maPhongBan))
-                    .findFirst()
-                    .map(PhongBan::getTenPhongBan)
-                    .orElse("N/A");
-            })
+            .map(NhanVien::getMaPhongBan)
+            .map(maPhongBan -> phongBanList.stream()
+                .filter(pb -> pb.getMaPhongBan().equals(maPhongBan))
+                .findFirst()
+                .map(PhongBan::getTenPhongBan)
+                .orElse("N/A"))
             .orElse("N/A");
     }
     

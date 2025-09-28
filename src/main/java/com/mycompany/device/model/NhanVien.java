@@ -65,6 +65,10 @@ public class NhanVien {
     }
     
     // Getters and Setters
+    public String getId() {
+        return this.maNhanVien;
+    }
+    
     public String getMaNhanVien() { 
         return maNhanVien; 
     }

@@ -6,6 +6,13 @@ import com.mycompany.device.util.LogoUtil;
 import com.mycompany.device.model.ThietBi;
 import com.mycompany.device.model.LoaiThietBi;
 import com.mycompany.device.model.NhanVien;
+import com.mycompany.device.service.YeuCauService;
+import com.mycompany.device.service.ThietBiService;
+import com.mycompany.device.service.LoaiThietBiService;
+import com.mycompany.device.service.impl.YeuCauServiceImpl;
+import com.mycompany.device.service.impl.ThietBiServiceImpl;
+import com.mycompany.device.service.impl.LoaiThietBiServiceImpl;
+import com.mycompany.device.controller.AuthController;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
@@ -16,12 +23,23 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Panel quản lý yêu cầu mượn thiết bị
- * @author Kim Ngan - UI Layer
+ * Panel quản lý yêu cầu mượn thiết bị với tích hợp service thực tế
+ * @author Kim Ngan - UI Layer with Service Integration
  */
 public class YeuCauPanel extends JPanel {
+    
+    private static final Logger logger = LoggerFactory.getLogger(YeuCauPanel.class);
+    
+    // Services
+    private final YeuCauService yeuCauService;
+    private final ThietBiService thietBiService;
+    private final LoaiThietBiService loaiThietBiService;
+    private AuthController authController;
     
     // Table components for displaying requests
     private JTable tableYeuCau;
@@ -58,15 +76,40 @@ public class YeuCauPanel extends JPanel {
     private NhanVien currentUser;
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     
-    public YeuCauPanel() {
+    /**
+     * Constructor với dependency injection
+     */
+    public YeuCauPanel(AuthController authController) {
+        this.authController = authController;
+        this.yeuCauService = new YeuCauServiceImpl();
+        this.thietBiService = new ThietBiServiceImpl();
+        this.loaiThietBiService = new LoaiThietBiServiceImpl();
+        
         initializeComponents();
         setupLayout();
         setupEventHandlers();
-        initializeMockData();
+        loadDataFromServices();
+        loadTableData();
+    }
+    
+    /**
+     * Constructor mặc định (fallback)
+     */
+    public YeuCauPanel() {
+        this.yeuCauService = new YeuCauServiceImpl();
+        this.thietBiService = new ThietBiServiceImpl();
+        this.loaiThietBiService = new LoaiThietBiServiceImpl();
+        
+        initializeComponents();
+        setupLayout();
+        setupEventHandlers();
+        loadDataFromServices();
         loadTableData();
     }
     
     private void initializeComponents() {
+        logger.info("Khởi tạo các component UI cho YeuCauPanel");
+        
         // Initialize yeu cau table
         String[] yeuCauColumns = {"ID", "Thiết bị", "Lý do", "Trạng thái", "Ngày tạo", "Ngày cập nhật"};
         tableModelYeuCau = new DefaultTableModel(yeuCauColumns, 0) {
@@ -95,13 +138,8 @@ public class YeuCauPanel extends JPanel {
         setupThietBiTableAppearance();
         scrollPaneThietBi = new JScrollPane(tableThietBi);
         
-        // Initialize mock data
-        initializeLoaiThietBiData();
-        initializeThietBiData();
-        
         // Initialize form components
         cboThietBi = new JComboBox<>();
-        populateThietBiComboBox();
         txtLyDo = new JTextArea(4, 30);
         txtLyDo.setLineWrap(true);
         txtLyDo.setWrapStyleWord(true);
@@ -136,6 +174,41 @@ public class YeuCauPanel extends JPanel {
         Dimension fieldSize = new Dimension(250, 25);
         cboThietBi.setPreferredSize(fieldSize);
         txtTimKiem.setPreferredSize(new Dimension(200, 25));
+    }
+    
+    /**
+     * Load data từ các service thay vì mock data
+     */
+    private void loadDataFromServices() {
+        try {
+            logger.info("Bắt đầu load dữ liệu từ services");
+            
+            // Load loại thiết bị
+            loaiThietBiList = loaiThietBiService.findAll();
+            logger.info("Đã load {} loại thiết bị", loaiThietBiList.size());
+            
+            // Load thiết bị
+            thietBiList = thietBiService.findAll();
+            logger.info("Đã load {} thiết bị", thietBiList.size());
+            
+            // Load yêu cầu
+            yeuCauList = yeuCauService.xemDanhSachYeuCau();
+            logger.info("Đã load {} yêu cầu", yeuCauList.size());
+            
+            // Populate combo box với thiết bị có sẵn
+            populateThietBiComboBox();
+            
+        } catch (Exception e) {
+            logger.error("Lỗi khi load dữ liệu từ services", e);
+            LogoUtil.showMessageDialog(this, 
+                "Lỗi khi tải dữ liệu: " + e.getMessage(), 
+                "Lỗi", JOptionPane.ERROR_MESSAGE);
+            
+            // Fallback to empty lists
+            yeuCauList = new ArrayList<>();
+            thietBiList = new ArrayList<>();
+            loaiThietBiList = new ArrayList<>();
+        }
     }
     
     private void styleButton(JButton button) {
@@ -339,8 +412,13 @@ public class YeuCauPanel extends JPanel {
         });
     }
     
+    /**
+     * Xử lý sự kiện gửi yêu cầu - sử dụng YeuCauService thực tế
+     */
     private void handleGuiYeuCau(ActionEvent e) {
         try {
+            logger.info("Bắt đầu xử lý gửi yêu cầu");
+            
             // Validation
             ThietBi selectedThietBi = (ThietBi) cboThietBi.getSelectedItem();
             if (selectedThietBi == null) {
@@ -356,63 +434,115 @@ public class YeuCauPanel extends JPanel {
                 return;
             }
             
-            if (currentUser == null) {
+            // Get current user
+            NhanVien user = getCurrentUser();
+            if (user == null) {
                 LogoUtil.showMessageDialog(this, "Bạn cần đăng nhập để gửi yêu cầu!", 
                                             "Lỗi", JOptionPane.ERROR_MESSAGE);
                 return;
             }
             
-            // Create new request  
-            YeuCau yeuCau = new YeuCau(selectedThietBi.getId(), (long)(yeuCauList.size() + 1), lyDo);
-            yeuCauList.add(yeuCau);
+            // Kiểm tra thiết bị có sẵn không
+            if (selectedThietBi.getTrangThai() != ThietBi.TrangThaiThietBi.TON_KHO) {
+                LogoUtil.showMessageDialog(this, "Thiết bị này hiện không có sẵn!", 
+                                            "Lỗi", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
             
-            // Refresh table
-            loadYeuCauTableData();
-            clearForm();
+            // Sử dụng trực tiếp maNhanVien (String)
+            String nhanVienId = user.getMaNhanVien();
             
-            LogoUtil.showMessageDialog(this, "Gửi yêu cầu thành công!", 
-                                        "Thành công", JOptionPane.INFORMATION_MESSAGE);
+            // Tạo yêu cầu qua service
+            boolean success = yeuCauService.taoYeuCau(selectedThietBi.getId(), nhanVienId, lyDo);
+            
+            if (success) {
+                logger.info("Tạo yêu cầu thành công: thietBiId={}, nhanVienId={}", 
+                           selectedThietBi.getId(), nhanVienId);
+                
+                // Refresh data và table
+                refreshData();
+                clearForm();
+                
+                LogoUtil.showMessageDialog(this, "Gửi yêu cầu thành công!", 
+                                            "Thành công", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                logger.warn("Tạo yêu cầu thất bại");
+                LogoUtil.showMessageDialog(this, "Không thể gửi yêu cầu. Vui lòng thử lại!", 
+                                            "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
             
         } catch (Exception ex) {
+            logger.error("Lỗi khi gửi yêu cầu", ex);
             LogoUtil.showMessageDialog(this, "Lỗi khi gửi yêu cầu: " + ex.getMessage(), 
                                         "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
     
+    /**
+     * Xử lý sự kiện hủy yêu cầu - sử dụng YeuCauService thực tế
+     */
     private void handleHuyYeuCau(ActionEvent e) {
-        int selectedRow = tableYeuCau.getSelectedRow();
-        if (selectedRow < 0) {
-            LogoUtil.showMessageDialog(this, "Vui lòng chọn yêu cầu cần hủy!", 
-                                        "Lỗi", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        
-        YeuCau yeuCau = yeuCauList.get(selectedRow);
-        
-        if (!yeuCau.isPending()) {
-            LogoUtil.showMessageDialog(this, "Chỉ có thể hủy yêu cầu đang chờ duyệt!", 
-                                        "Lỗi", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        
-        int confirm = LogoUtil.showConfirmDialog(this, 
-            "Bạn có chắc chắn muốn hủy yêu cầu này?", 
-            "Xác nhận", JOptionPane.YES_NO_OPTION);
+        try {
+            int selectedRow = tableYeuCau.getSelectedRow();
+            if (selectedRow < 0) {
+                LogoUtil.showMessageDialog(this, "Vui lòng chọn yêu cầu cần hủy!", 
+                                            "Lỗi", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
             
-        if (confirm == JOptionPane.YES_OPTION) {
-            yeuCau.updateTrangThai(TrangThaiYeuCau.DA_HUY);
-            loadYeuCauTableData();
-            clearForm();
+            YeuCau yeuCau = getFilteredYeuCauList().get(selectedRow);
             
-            LogoUtil.showMessageDialog(this, "Đã hủy yêu cầu thành công!", 
-                                        "Thành công", JOptionPane.INFORMATION_MESSAGE);
+            if (!yeuCau.isPending()) {
+                LogoUtil.showMessageDialog(this, "Chỉ có thể hủy yêu cầu đang chờ duyệt!", 
+                                            "Lỗi", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            int confirm = LogoUtil.showConfirmDialog(this, 
+                "Bạn có chắc chắn muốn hủy yêu cầu này?", 
+                "Xác nhận", JOptionPane.YES_NO_OPTION);
+                
+            if (confirm == JOptionPane.YES_OPTION) {
+                boolean success = yeuCauService.huyYeuCau(yeuCau.getId(), "Người dùng hủy yêu cầu");
+                
+                if (success) {
+                    logger.info("Hủy yêu cầu thành công: ID={}", yeuCau.getId());
+                    refreshData();
+                    clearForm();
+                    
+                    LogoUtil.showMessageDialog(this, "Đã hủy yêu cầu thành công!", 
+                                                "Thành công", JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    LogoUtil.showMessageDialog(this, "Không thể hủy yêu cầu. Vui lòng thử lại!", 
+                                                "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+            
+        } catch (Exception ex) {
+            logger.error("Lỗi khi hủy yêu cầu", ex);
+            LogoUtil.showMessageDialog(this, "Lỗi khi hủy yêu cầu: " + ex.getMessage(), 
+                                        "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
     
     private void handleLamMoi(ActionEvent e) {
-        clearForm();
-        loadYeuCauTableData();
-        loadThietBiTableData();
+        try {
+            logger.info("Làm mới dữ liệu");
+            refreshData();
+            clearForm();
+        } catch (Exception ex) {
+            logger.error("Lỗi khi làm mới dữ liệu", ex);
+            LogoUtil.showMessageDialog(this, "Lỗi khi làm mới: " + ex.getMessage(), 
+                                        "Lỗi", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    /**
+     * Refresh toàn bộ dữ liệu từ services
+     */
+    private void refreshData() {
+        loadDataFromServices();
+        loadTableData();
     }
     
     private void handleTimKiem(ActionEvent e) {
@@ -425,7 +555,9 @@ public class YeuCauPanel extends JPanel {
         }
         
         List<YeuCau> filteredList = new ArrayList<>();
-        for (YeuCau yc : yeuCauList) {
+        List<YeuCau> userRequests = getFilteredYeuCauList();
+        
+        for (YeuCau yc : userRequests) {
             boolean matches = false;
             
             switch (searchIn) {
@@ -489,8 +621,9 @@ public class YeuCauPanel extends JPanel {
     }
     
     private void loadYeuCauFromTable(int row) {
-        if (row >= 0 && row < yeuCauList.size()) {
-            YeuCau yc = yeuCauList.get(row);
+        List<YeuCau> filteredList = getFilteredYeuCauList();
+        if (row >= 0 && row < filteredList.size()) {
+            YeuCau yc = filteredList.get(row);
             
             ThietBi thietBi = findThietBiById(yc.getThietBiId());
             if (thietBi != null) {
@@ -509,12 +642,16 @@ public class YeuCauPanel extends JPanel {
     private void selectThietBiFromTable(int row) {
         if (row >= 0 && row < thietBiList.size()) {
             ThietBi thietBi = thietBiList.get(row);
-            cboThietBi.setSelectedItem(thietBi);
+            if (thietBi.getTrangThai() == ThietBi.TrangThaiThietBi.TON_KHO) {
+                cboThietBi.setSelectedItem(thietBi);
+            }
         }
     }
     
     private void clearForm() {
-        cboThietBi.setSelectedIndex(0);
+        if (cboThietBi.getItemCount() > 0) {
+            cboThietBi.setSelectedIndex(0);
+        }
         txtLyDo.setText("");
         lblTrangThai.setText("Chờ duyệt");
         lblNgayTao.setText(LocalDateTime.now().format(DATE_FORMATTER));
@@ -530,18 +667,13 @@ public class YeuCauPanel extends JPanel {
         loadThietBiTableData();
     }
     
+    /**
+     * Load dữ liệu yêu cầu của user hiện tại
+     */
     private void loadYeuCauTableData() {
         tableModelYeuCau.setRowCount(0);
         
-        // Chỉ hiển thị yêu cầu của user hiện tại
-        List<YeuCau> userRequests = new ArrayList<>();
-        if (currentUser != null) {
-            for (YeuCau yc : yeuCauList) {
-                if (yc.getNhanVienId().equals(1L)) { // Temporary: assume user ID = 1
-                    userRequests.add(yc);
-                }
-            }
-        }
+        List<YeuCau> userRequests = getFilteredYeuCauList();
         
         for (YeuCau yc : userRequests) {
             ThietBi thietBi = findThietBiById(yc.getThietBiId());
@@ -559,6 +691,9 @@ public class YeuCauPanel extends JPanel {
         }
     }
     
+    /**
+     * Load dữ liệu thiết bị từ service
+     */
     private void loadThietBiTableData() {
         tableModelThietBi.setRowCount(0);
         
@@ -578,71 +713,35 @@ public class YeuCauPanel extends JPanel {
                 tb.getSoSerial(),
                 tenLoai,
                 tb.getTrangThai().getDisplayName(),
-                tb.getNgayMua() != null ? tb.getNgayMua().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) : "",
+                tb.getNgayMua() != null ? tb.getNgayMua().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")) : "",
                 tb.getGiaMua() != null ? tb.getGiaMua().toString() : ""
             };
             tableModelThietBi.addRow(row);
         }
     }
     
-    // Mock data methods
-    private void initializeMockData() {
-        yeuCauList = new ArrayList<>();
+    /**
+     * Lấy danh sách yêu cầu được filter theo user hiện tại
+     */
+    private List<YeuCau> getFilteredYeuCauList() {
+        List<YeuCau> userRequests = new ArrayList<>();
+        NhanVien user = getCurrentUser();
         
-        // Add some sample requests (will be filtered by user)
-        yeuCauList.add(new YeuCau(1L, 1L, 1L, TrangThaiYeuCau.CHO_DUYET, 
-            "Cần laptop để làm việc tại nhà", 
-            LocalDateTime.now().minusDays(1), LocalDateTime.now().minusDays(1)));
-            
-        yeuCauList.add(new YeuCau(2L, 2L, 1L, TrangThaiYeuCau.DA_DUYET, 
-            "Máy in để in tài liệu", 
-            LocalDateTime.now().minusDays(3), LocalDateTime.now().minusDays(2)));
+        if (user != null && yeuCauList != null) {
+            String userNhanVienId = user.getMaNhanVien();
+            for (YeuCau yc : yeuCauList) {
+                if (userNhanVienId.equals(yc.getNhanVienId())) {
+                    userRequests.add(yc);
+                }
+            }
+        }
+        
+        return userRequests;
     }
     
-    private void initializeLoaiThietBiData() {
-        loaiThietBiList = new ArrayList<>();
-        
-        loaiThietBiList.add(new LoaiThietBi(1L, "LT001", "Máy tính để bàn", "Máy tính cá nhân dành cho văn phòng"));
-        loaiThietBiList.add(new LoaiThietBi(2L, "LT002", "Laptop", "Máy tính xách tay"));
-        loaiThietBiList.add(new LoaiThietBi(3L, "LT003", "Máy in", "Thiết bị in ấn văn phòng"));
-        loaiThietBiList.add(new LoaiThietBi(4L, "LT004", "Máy chiếu", "Thiết bị trình chiếu"));
-        loaiThietBiList.add(new LoaiThietBi(5L, "LT005", "Màn hình", "Màn hình máy tính"));
-    }
-    
-    private void initializeThietBiData() {
-        thietBiList = new ArrayList<>();
-        
-        ThietBi tb1 = new ThietBi("LAP001", 2L, ThietBi.TrangThaiThietBi.TON_KHO, 
-            java.time.LocalDate.now().minusMonths(6), new java.math.BigDecimal("15000000"), 
-            "Laptop Dell Inspiron 15");
-        tb1.setId(1L);
-        thietBiList.add(tb1);
-            
-        ThietBi tb2 = new ThietBi("PC001", 1L, ThietBi.TrangThaiThietBi.TON_KHO, 
-            java.time.LocalDate.now().minusMonths(12), new java.math.BigDecimal("12000000"), 
-            "PC Dell OptiPlex");
-        tb2.setId(2L);
-        thietBiList.add(tb2);
-            
-        ThietBi tb3 = new ThietBi("PRINT001", 3L, ThietBi.TrangThaiThietBi.TON_KHO, 
-            java.time.LocalDate.now().minusMonths(8), new java.math.BigDecimal("3000000"), 
-            "Máy in HP LaserJet");
-        tb3.setId(3L);
-        thietBiList.add(tb3);
-            
-        ThietBi tb4 = new ThietBi("PROJ001", 4L, ThietBi.TrangThaiThietBi.TON_KHO, 
-            java.time.LocalDate.now().minusMonths(10), new java.math.BigDecimal("8000000"), 
-            "Máy chiếu Epson");
-        tb4.setId(4L);
-        thietBiList.add(tb4);
-            
-        ThietBi tb5 = new ThietBi("MON001", 5L, ThietBi.TrangThaiThietBi.TON_KHO, 
-            java.time.LocalDate.now().minusMonths(4), new java.math.BigDecimal("4000000"), 
-            "Màn hình Samsung 24 inch");
-        tb5.setId(5L);
-        thietBiList.add(tb5);
-    }
-    
+    /**
+     * Populate combo box với thiết bị có sẵn từ service
+     */
     private void populateThietBiComboBox() {
         cboThietBi.removeAllItems();
         
@@ -650,9 +749,11 @@ public class YeuCauPanel extends JPanel {
         cboThietBi.addItem(null);
         
         // Add available devices
-        for (ThietBi thietBi : thietBiList) {
-            if (thietBi.getTrangThai() == ThietBi.TrangThaiThietBi.TON_KHO) {
-                cboThietBi.addItem(thietBi);
+        if (thietBiList != null) {
+            for (ThietBi thietBi : thietBiList) {
+                if (thietBi.getTrangThai() == ThietBi.TrangThaiThietBi.TON_KHO) {
+                    cboThietBi.addItem(thietBi);
+                }
             }
         }
         
@@ -678,33 +779,89 @@ public class YeuCauPanel extends JPanel {
     }
     
     private ThietBi findThietBiById(Long id) {
-        if (id == null) return null;
-        for (ThietBi tb : thietBiList) {
-            if (id.equals(tb.getId())) {
-                return tb;
-            }
-        }
-        return null;
+        if (id == null || thietBiList == null) return null;
+        return thietBiList.stream()
+                .filter(tb -> id.equals(tb.getId()))
+                .findFirst()
+                .orElse(null);
     }
     
     private LoaiThietBi findLoaiThietBiById(Long id) {
-        if (id == null) return null;
-        for (LoaiThietBi loai : loaiThietBiList) {
-            if (id.equals(loai.getId())) {
-                return loai;
-            }
-        }
-        return null;
+        if (id == null || loaiThietBiList == null) return null;
+        return loaiThietBiList.stream()
+                .filter(loai -> id.equals(loai.getId()))
+                .findFirst()
+                .orElse(null);
     }
     
-    // Public method to set current user
+    /**
+     * Lấy thông tin user hiện tại
+     */
+    private NhanVien getCurrentUser() {
+        if (authController != null && authController.isLoggedIn()) {
+            return authController.getCurrentUser();
+        }
+        return currentUser; // fallback
+    }
+    
+    /**
+     * Public method để set current user (fallback khi không có AuthController)
+     */
     public void setCurrentUser(NhanVien user) {
         this.currentUser = user;
         if (user != null) {
             lblNhanVien.setText(user.getTenNhanVien());
+            logger.info("Đã set current user: {}", user.getTenNhanVien());
         } else {
             lblNhanVien.setText("Chưa đăng nhập");
         }
         loadYeuCauTableData(); // Reload to show user's requests
+    }
+    
+    /**
+     * Set AuthController (để sử dụng authentication thực tế)
+     */
+    public void setAuthController(AuthController authController) {
+        this.authController = authController;
+        
+        // Update current user from auth controller
+        if (authController != null && authController.isLoggedIn()) {
+            NhanVien user = authController.getCurrentUser();
+            setCurrentUser(user);
+        }
+    }
+
+    /**
+     * Chuyển đổi maNhanVien (String) thành Long để tương thích với service
+     * Sử dụng hash code để tạo Long từ String
+     */
+    private Long convertMaNhanVienToLong(String maNhanVien) {
+        if (maNhanVien == null) {
+            return 0L;
+        }
+        // Sử dụng hash code và đảm bảo là số dương
+        return Math.abs((long) maNhanVien.hashCode());
+    }
+    
+    /**
+     * Chuyển đổi String nhanVienId thành String maNhanVien (reverse mapping)
+     * Lưu ý: Đây là reverse mapping không hoàn toàn chính xác do hash collision
+     * Chỉ sử dụng cho mục đích hiển thị
+     */
+    private String convertLongToMaNhanVien(String nhanVienId) {
+        if (nhanVienId == null) {
+            return "N/A";
+        }
+        // Tìm maNhanVien tương ứng bằng cách so sánh hash
+        if (yeuCauList != null) {
+            for (YeuCau yc : yeuCauList) {
+                if (nhanVienId.equals(yc.getNhanVienId())) {
+                    // Tìm trong danh sách nhân viên để lấy maNhanVien
+                    // Đây là workaround tạm thời
+                    return "NV" + nhanVienId.toString().substring(0, Math.min(3, nhanVienId.toString().length()));
+                }
+            }
+        }
+        return "NV" + nhanVienId.toString().substring(0, Math.min(3, nhanVienId.toString().length()));
     }
 }

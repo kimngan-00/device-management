@@ -22,13 +22,13 @@ public class YeuCauDAOMySQLImpl implements YeuCauDAO {
     
     @Override
     public boolean createYeuCau(YeuCau yeuCau) {
-        String sql = "INSERT INTO yeu_cau (thiet_bi_id, nhan_vien_id, trang_thai, ly_do, ngay_tao, ngay_cap_nhat) VALUES (?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO YeuCau (thietBiId, nhanVienId, trangThai, lyDo, ngayTao, ngayCapNhat) VALUES (?, ?, ?, ?, ?, ?)";
         
         try (Connection conn = DatabaseConnection.getInstance().getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             
             stmt.setLong(1, yeuCau.getThietBiId());
-            stmt.setLong(2, yeuCau.getNhanVienId());
+            stmt.setString(2, yeuCau.getNhanVienId());
             stmt.setString(3, yeuCau.getTrangThai().name());
             stmt.setString(4, yeuCau.getLyDo());
             stmt.setTimestamp(5, Timestamp.valueOf(yeuCau.getNgayTao()));
@@ -55,13 +55,13 @@ public class YeuCauDAOMySQLImpl implements YeuCauDAO {
     
     @Override
     public boolean updateYeuCau(YeuCau yeuCau) {
-        String sql = "UPDATE yeu_cau SET thiet_bi_id=?, nhan_vien_id=?, trang_thai=?, ly_do=?, ngay_cap_nhat=? WHERE id=?";
+        String sql = "UPDATE YeuCau SET thietBiId=?, nhanVienId=?, trangThai=?, lyDo=?, ngayCapNhat=? WHERE id=?";
         
         try (Connection conn = DatabaseConnection.getInstance().getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
             stmt.setLong(1, yeuCau.getThietBiId());
-            stmt.setLong(2, yeuCau.getNhanVienId());
+            stmt.setString(2, yeuCau.getNhanVienId());
             stmt.setString(3, yeuCau.getTrangThai().name());
             stmt.setString(4, yeuCau.getLyDo());
             stmt.setTimestamp(5, Timestamp.valueOf(yeuCau.getNgayCapNhat()));
@@ -80,7 +80,7 @@ public class YeuCauDAOMySQLImpl implements YeuCauDAO {
     
     @Override
     public boolean deleteYeuCau(Long yeuCauId) {
-        String sql = "DELETE FROM yeu_cau WHERE id=?";
+        String sql = "DELETE FROM YeuCau WHERE id=?";
         
         try (Connection conn = DatabaseConnection.getInstance().getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -99,7 +99,7 @@ public class YeuCauDAOMySQLImpl implements YeuCauDAO {
     
     @Override
     public Optional<YeuCau> findYeuCauById(Long yeuCauId) {
-        String sql = "SELECT * FROM yeu_cau WHERE id=?";
+        String sql = "SELECT * FROM YeuCau WHERE id=?";
         
         try (Connection conn = DatabaseConnection.getInstance().getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -121,7 +121,7 @@ public class YeuCauDAOMySQLImpl implements YeuCauDAO {
     
     @Override
     public List<YeuCau> getAllYeuCau() {
-        String sql = "SELECT * FROM yeu_cau ORDER BY ngay_tao DESC";
+        String sql = "SELECT * FROM YeuCau ORDER BY ngayTao DESC";
         List<YeuCau> yeuCauList = new ArrayList<>();
         
         try (Connection conn = DatabaseConnection.getInstance().getConnection();
@@ -141,31 +141,31 @@ public class YeuCauDAOMySQLImpl implements YeuCauDAO {
     
     @Override
     public List<YeuCau> findYeuCauByThietBi(Long thietBiId) {
-        String sql = "SELECT * FROM yeu_cau WHERE thiet_bi_id=? ORDER BY ngay_tao DESC";
+        String sql = "SELECT * FROM YeuCau WHERE thietBiId=? ORDER BY ngayTao DESC";
         return findYeuCauByCondition(sql, thietBiId);
     }
     
     @Override
-    public List<YeuCau> findYeuCauByNhanVien(Long nhanVienId) {
-        String sql = "SELECT * FROM yeu_cau WHERE nhan_vien_id=? ORDER BY ngay_tao DESC";
+    public List<YeuCau> findYeuCauByNhanVien(String nhanVienId) {
+        String sql = "SELECT * FROM YeuCau WHERE nhanVienId=? ORDER BY ngayTao DESC";
         return findYeuCauByCondition(sql, nhanVienId);
     }
     
     @Override
     public List<YeuCau> findYeuCauByTrangThai(YeuCau.TrangThaiYeuCau trangThai) {
-        String sql = "SELECT * FROM yeu_cau WHERE trang_thai=? ORDER BY ngay_tao DESC";
+        String sql = "SELECT * FROM YeuCau WHERE trangThai=? ORDER BY ngayTao DESC";
         return findYeuCauByCondition(sql, trangThai.name());
     }
     
     @Override
     public List<YeuCau> searchYeuCauByLyDo(String lyDo) {
-        String sql = "SELECT * FROM yeu_cau WHERE ly_do LIKE ? ORDER BY ngay_tao DESC";
+        String sql = "SELECT * FROM YeuCau WHERE lyDo LIKE ? ORDER BY ngayTao DESC";
         return findYeuCauByCondition(sql, "%" + lyDo + "%");
     }
     
     @Override
     public boolean existsYeuCau(Long yeuCauId) {
-        String sql = "SELECT COUNT(*) FROM yeu_cau WHERE id=?";
+        String sql = "SELECT COUNT(*) FROM YeuCau WHERE id=?";
         
         try (Connection conn = DatabaseConnection.getInstance().getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -187,19 +187,19 @@ public class YeuCauDAOMySQLImpl implements YeuCauDAO {
     
     @Override
     public int countYeuCau() {
-        String sql = "SELECT COUNT(*) FROM yeu_cau";
+        String sql = "SELECT COUNT(*) FROM YeuCau";
         return executeCountQuery(sql);
     }
     
     @Override
     public int countYeuCauByTrangThai(YeuCau.TrangThaiYeuCau trangThai) {
-        String sql = "SELECT COUNT(*) FROM yeu_cau WHERE trang_thai=?";
+        String sql = "SELECT COUNT(*) FROM YeuCau WHERE trangThai=?";
         return executeCountQuery(sql, trangThai.name());
     }
     
     @Override
-    public int countYeuCauByNhanVien(Long nhanVienId) {
-        String sql = "SELECT COUNT(*) FROM yeu_cau WHERE nhan_vien_id=?";
+    public int countYeuCauByNhanVien(String nhanVienId) {
+        String sql = "SELECT COUNT(*) FROM YeuCau WHERE nhanVienId=?";
         return executeCountQuery(sql, nhanVienId);
     }
     
@@ -250,12 +250,12 @@ public class YeuCauDAOMySQLImpl implements YeuCauDAO {
     private YeuCau mapResultSetToYeuCau(ResultSet rs) throws SQLException {
         YeuCau yeuCau = new YeuCau();
         yeuCau.setId(rs.getLong("id"));
-        yeuCau.setThietBiId(rs.getLong("thiet_bi_id"));
-        yeuCau.setNhanVienId(rs.getLong("nhan_vien_id"));
-        yeuCau.setTrangThai(YeuCau.TrangThaiYeuCau.valueOf(rs.getString("trang_thai")));
-        yeuCau.setLyDo(rs.getString("ly_do"));
-        yeuCau.setNgayTao(rs.getTimestamp("ngay_tao").toLocalDateTime());
-        yeuCau.setNgayCapNhat(rs.getTimestamp("ngay_cap_nhat").toLocalDateTime());
+        yeuCau.setThietBiId(rs.getLong("thietBiId"));
+        yeuCau.setNhanVienId(rs.getString("nhanVienId"));
+        yeuCau.setTrangThai(YeuCau.TrangThaiYeuCau.valueOf(rs.getString("trangThai")));
+        yeuCau.setLyDo(rs.getString("lyDo"));
+        yeuCau.setNgayTao(rs.getTimestamp("ngayTao").toLocalDateTime());
+        yeuCau.setNgayCapNhat(rs.getTimestamp("ngayCapNhat").toLocalDateTime());
         return yeuCau;
     }
 } 

@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 public class YeuCau {
     private Long id;
     private Long thietBiId;
-    private Long nhanVienId;
+    private String nhanVienId;
     private TrangThaiYeuCau trangThai;
     private String lyDo;
     private LocalDateTime ngayTao;
@@ -39,23 +39,23 @@ public class YeuCau {
         this.ngayCapNhat = LocalDateTime.now();
     }
     
-    public YeuCau(Long thietBiId, Long nhanVienId) {
+    public YeuCau(Long thietBiId, String nhanVienId) {
         this();
         this.thietBiId = thietBiId;
         this.nhanVienId = nhanVienId;
     }
     
-    public YeuCau(Long thietBiId, Long nhanVienId, String lyDo) {
+    public YeuCau(Long thietBiId, String nhanVienId, String lyDo) {
         this(thietBiId, nhanVienId);
         this.lyDo = lyDo;
     }
     
-    public YeuCau(Long thietBiId, Long nhanVienId, TrangThaiYeuCau trangThai, String lyDo) {
+    public YeuCau(Long thietBiId, String nhanVienId, TrangThaiYeuCau trangThai, String lyDo) {
         this(thietBiId, nhanVienId, lyDo);
         this.trangThai = trangThai;
     }
     
-    public YeuCau(Long id, Long thietBiId, Long nhanVienId, TrangThaiYeuCau trangThai, 
+    public YeuCau(Long id, Long thietBiId, String nhanVienId, TrangThaiYeuCau trangThai, 
                    String lyDo, LocalDateTime ngayTao, LocalDateTime ngayCapNhat) {
         this(thietBiId, nhanVienId, trangThai, lyDo);
         this.id = id;
@@ -80,11 +80,11 @@ public class YeuCau {
         this.thietBiId = thietBiId; 
     }
     
-    public Long getNhanVienId() { 
+    public String getNhanVienId() { 
         return nhanVienId; 
     }
     
-    public void setNhanVienId(Long nhanVienId) { 
+    public void setNhanVienId(String nhanVienId) { 
         this.nhanVienId = nhanVienId; 
     }
     
@@ -160,7 +160,7 @@ public class YeuCau {
     
     @Override
     public String toString() {
-        return String.format("YeuCau{id=%d, thietBiId=%d, nhanVienId=%d, trangThai='%s', lyDo='%s', ngayTao='%s', ngayCapNhat='%s'}", 
+        return String.format("YeuCau{id=%d, thietBiId=%d, nhanVienId='%s', trangThai='%s', lyDo='%s', ngayTao='%s', ngayCapNhat='%s'}", 
                            id, thietBiId, nhanVienId, trangThai.getDisplayName(), lyDo, ngayTao, ngayCapNhat);
     }
     
