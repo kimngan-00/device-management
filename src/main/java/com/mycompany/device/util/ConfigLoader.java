@@ -47,7 +47,7 @@ public class ConfigLoader {
      * Thiết lập cấu hình mặc định
      */
     private static void setDefaultConfig() {
-        properties.setProperty("DB_URL", "jdbc:mysql://localhost:3306/device_management?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true");
+        properties.setProperty("DB_URL", "jdbc:mysql://localhost:3306/quanlythietbi?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true");
         properties.setProperty("DB_USERNAME", "root");
         properties.setProperty("DB_PASSWORD", "");
         properties.setProperty("DB_DRIVER", "com.mysql.cj.jdbc.Driver");

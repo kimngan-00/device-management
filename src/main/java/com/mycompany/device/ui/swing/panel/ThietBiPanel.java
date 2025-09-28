@@ -1,5 +1,8 @@
 package com.mycompany.device.ui.swing.panel;
 
+import com.mycompany.device.controller.ThietBiController;
+import com.mycompany.device.dao.LoaiThietBiDAO;
+import com.mycompany.device.dao.impl.LoaiThietBiDAOMySQLImpl;
 import com.mycompany.device.model.ThietBi;
 import com.mycompany.device.util.LogoUtil;
 import com.mycompany.device.model.ThietBi.TrangThaiThietBi;
@@ -14,11 +17,15 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Panel quản lý thiết bị
+ * Đã kết nối với ThietBiController để thao tác với Database.
  * @author Kim Ngan - UI Layer
  */
 public class ThietBiPanel extends JPanel {
@@ -49,22 +56,32 @@ public class ThietBiPanel extends JPanel {
     private JButton btnTimKiem;
     private JButton btnLamSach;
     
-    // Data
+    // Data & Controller
     private List<ThietBi> thietBiList;
     private List<LoaiThietBi> loaiThietBiList;
+    private final ThietBiController thietBiController; // Controller mới
+    private final LoaiThietBiDAO loaiThietBiDAO; // DAO cho Loại thiết bị
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     
     public ThietBiPanel() {
+        // Khởi tạo Controller và DAO
+        this.thietBiController = new ThietBiController();
+        // Giả định LoaiThietBiDAOMySQLImpl đã tồn tại và triển khai LoaiThietBiDAO
+        this.loaiThietBiDAO = new LoaiThietBiDAOMySQLImpl(); 
+        this.thietBiList = new ArrayList<>();
+        
         initializeComponents();
         setupLayout();
         setupEventHandlers();
-        initializeMockData();
-        loadTableData();
+        
+        loadLoaiThietBiData(); // Tải dữ liệu Loại TB từ DB
+        loadTableData(thietBiController.getAllThietBi()); // Tải dữ liệu TB từ DB
+        clearForm();
     }
     
     private void initializeComponents() {
         // Initialize table
-        String[] columnNames = {"Số Serial", "Loại thiết bị", "Trạng thái", "Ngày mua", "Giá mua", "Ghi chú", "Ngày tạo"};
+        String[] columnNames = {"ID", "Số Serial", "Loại thiết bị", "Trạng thái", "Ngày mua", "Giá mua", "Ghi chú", "Ngày tạo"};
         tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -83,9 +100,8 @@ public class ThietBiPanel extends JPanel {
         // Initialize form components
         txtId = new JTextField();
         txtSoSerial = new JTextField();
-        initializeLoaiThietBiData();
+        // Không cần initializeLoaiThietBiData() ở đây nữa
         cboLoaiThietBi = new JComboBox<>();
-        populateLoaiThietBiComboBox();
         cboTrangThai = new JComboBox<>(TrangThaiThietBi.values());
         txtNgayMua = new JTextField();
         txtGiaMua = new JTextField();
@@ -151,31 +167,8 @@ public class ThietBiPanel extends JPanel {
             }
         });
     }
-    
-    private void initializeMockData() {
-        thietBiList = new ArrayList<>();
-        
-        // Sample data
-        thietBiList.add(new ThietBi(1L, "TB001", 1L, TrangThaiThietBi.TON_KHO,
-                LocalDate.of(2024, 1, 15), new BigDecimal("15000000"), "Laptop Dell Inspiron",
-                LocalDateTime.now().minusDays(30), LocalDateTime.now().minusDays(30)));
-        
-        thietBiList.add(new ThietBi(2L, "TB002", 2L, TrangThaiThietBi.DANG_CAP_PHAT,
-                LocalDate.of(2024, 2, 20), new BigDecimal("8000000"), "Màn hình LG 24 inch",
-                LocalDateTime.now().minusDays(25), LocalDateTime.now().minusDays(20)));
-        
-        thietBiList.add(new ThietBi(3L, "TB003", 1L, TrangThaiThietBi.DANG_BAO_TRI,
-                LocalDate.of(2023, 12, 10), new BigDecimal("12000000"), "Laptop HP Pavilion - cần thay pin",
-                LocalDateTime.now().minusDays(45), LocalDateTime.now().minusDays(5)));
-        
-        thietBiList.add(new ThietBi(4L, "TB004", 3L, TrangThaiThietBi.HU_HONG,
-                LocalDate.of(2023, 8, 5), new BigDecimal("3000000"), "Bàn phím cơ - bị đổ nước",
-                LocalDateTime.now().minusDays(60), LocalDateTime.now().minusDays(10)));
-        
-        thietBiList.add(new ThietBi(5L, "TB005", 4L, TrangThaiThietBi.TON_KHO,
-                LocalDate.of(2024, 3, 1), new BigDecimal("5000000"), "Chuột gaming",
-                LocalDateTime.now().minusDays(15), LocalDateTime.now().minusDays(15)));
-    }
+
+    // *** REMOVED initializeMockData() ***
     
     private void setupLayout() {
         setLayout(new BorderLayout());
@@ -290,7 +283,7 @@ public class ThietBiPanel extends JPanel {
         table.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
                 int selectedRow = table.getSelectedRow();
-                if (selectedRow >= 0) {
+                if (selectedRow >= 0 && selectedRow < thietBiList.size()) {
                     loadFormFromTable(selectedRow);
                 }
             }
@@ -305,24 +298,26 @@ public class ThietBiPanel extends JPanel {
         btnLamSach.addActionListener(this::handleLamSach);
     }
     
-    private void loadTableData() {
+    /**
+     * Tải dữ liệu thiết bị vào JTable.
+     * @param dataList Danh sách thiết bị cần hiển thị.
+     */
+    private void loadTableData(List<ThietBi> dataList) {
         tableModel.setRowCount(0);
+        this.thietBiList = dataList; // Cập nhật danh sách hiện tại
         
         for (ThietBi tb : thietBiList) {
             // Tìm tên loại thiết bị từ ID
-            String tenLoai = "";
-            if (tb.getLoaiId() != null) {
-                for (LoaiThietBi loai : loaiThietBiList) {
-                    if (loai.getId().equals(tb.getLoaiId())) {
-                        tenLoai = loai.getTenLoai();
-                        break;
-                    }
-                }
-            }
+            String tenLoai = loaiThietBiList.stream()
+                                .filter(loai -> tb.getLoaiId() != null && loai.getId().equals(tb.getLoaiId()))
+                                .findFirst()
+                                .map(LoaiThietBi::getTenLoai)
+                                .orElse("Không xác định"); 
             
             Object[] row = {
+                tb.getId(), // Thêm ID vào cột đầu tiên (Ẩn nếu muốn, nhưng tiện cho việc tìm kiếm)
                 tb.getSoSerial(),
-                tenLoai,  // Hiển thị tên loại thay vì ID
+                tenLoai, 
                 tb.getTrangThai().getDisplayName(),
                 tb.getNgayMua() != null ? tb.getNgayMua().format(DATE_FORMATTER) : "",
                 tb.getGiaMua() != null ? tb.getGiaMua().toString() : "",
@@ -340,6 +335,7 @@ public class ThietBiPanel extends JPanel {
      * Cập nhật chiều cao các row để phù hợp với nội dung wrap text
      */
     private void updateRowHeights() {
+        // Code cập nhật chiều cao hàng không thay đổi.
         for (int row = 0; row < table.getRowCount(); row++) {
             int maxHeight = 35; // Chiều cao tối thiểu
             
@@ -374,16 +370,10 @@ public class ThietBiPanel extends JPanel {
             txtSoSerial.setText(tb.getSoSerial() != null ? tb.getSoSerial() : "");
             
             // Set selected loai thiet bi
-            LoaiThietBi selectedLoai = null;
-            if (tb.getLoaiId() != null) {
-                for (LoaiThietBi loai : loaiThietBiList) {
-                    if (loai.getId().equals(tb.getLoaiId())) {
-                        selectedLoai = loai;
-                        break;
-                    }
-                }
-            }
-            cboLoaiThietBi.setSelectedItem(selectedLoai);
+            Optional<LoaiThietBi> selectedLoai = loaiThietBiList.stream()
+                .filter(loai -> tb.getLoaiId() != null && loai.getId().equals(tb.getLoaiId()))
+                .findFirst();
+            cboLoaiThietBi.setSelectedItem(selectedLoai.orElse(null));
             
             cboTrangThai.setSelectedItem(tb.getTrangThai());
             txtNgayMua.setText(tb.getNgayMua() != null ? tb.getNgayMua().format(DATE_FORMATTER) : "");
@@ -395,23 +385,30 @@ public class ThietBiPanel extends JPanel {
     private void clearForm() {
         txtId.setText("");
         txtSoSerial.setText("");
-        cboLoaiThietBi.setSelectedIndex(0);  // Select default "Chọn loại thiết bị"
+        // Đặt lại ComboBox về option mặc định (null)
+        if (cboLoaiThietBi.getItemCount() > 0) {
+            cboLoaiThietBi.setSelectedIndex(0); 
+        } 
         cboTrangThai.setSelectedIndex(0);
         txtNgayMua.setText("");
         txtGiaMua.setText("");
         txtGhiChu.setText("");
     }
     
-    private ThietBi createThietBiFromForm() {
+    /**
+     * Chuyển dữ liệu từ Form thành đối tượng ThietBi
+     * @throws IllegalArgumentException nếu dữ liệu không hợp lệ
+     */
+    private ThietBi createThietBiFromForm() throws IllegalArgumentException {
         try {
             String soSerial = txtSoSerial.getText().trim();
             if (soSerial.isEmpty()) {
-                throw new IllegalArgumentException("Số Serial không được để trống");
+                throw new IllegalArgumentException("Số Serial không được để trống.");
             }
             
             LoaiThietBi selectedLoai = (LoaiThietBi) cboLoaiThietBi.getSelectedItem();
-            if (selectedLoai == null) {
-                throw new IllegalArgumentException("Vui lòng chọn loại thiết bị");
+            if (selectedLoai == null || selectedLoai.getId() == null) {
+                throw new IllegalArgumentException("Vui lòng chọn loại thiết bị.");
             }
             Long loaiId = selectedLoai.getId();
             
@@ -426,6 +423,8 @@ public class ThietBiPanel extends JPanel {
             BigDecimal giaMua = null;
             String giaMuaStr = txtGiaMua.getText().trim();
             if (!giaMuaStr.isEmpty()) {
+                // Xử lý loại bỏ dấu phẩy (nếu người dùng nhập định dạng tiền tệ)
+                giaMuaStr = giaMuaStr.replace(",", "").replace(".", ""); 
                 giaMua = new BigDecimal(giaMuaStr);
             }
             
@@ -434,32 +433,44 @@ public class ThietBiPanel extends JPanel {
                 ghiChu = null;
             }
             
+            // Khởi tạo đối tượng ThietBi (không có ID, createdAt, updatedAt)
             return new ThietBi(soSerial, loaiId, trangThai, ngayMua, giaMua, ghiChu);
             
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("Định dạng Ngày mua không hợp lệ. Phải là yyyy-MM-dd.");
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Giá mua không hợp lệ.");
+        } catch (IllegalArgumentException e) {
+            throw e; // Ném lại các lỗi đã bắt
         } catch (Exception e) {
             throw new IllegalArgumentException("Dữ liệu nhập không hợp lệ: " + e.getMessage());
         }
     }
     
+    // =========================================================================
+    //                            CÁC PHƯƠNG THỨC XỬ LÝ SỰ KIỆN MỚI
+    // =========================================================================
+
     private void handleThem(ActionEvent e) {
         try {
             ThietBi newThietBi = createThietBiFromForm();
             
-            // Generate new ID
-            Long maxId = thietBiList.stream()
-                    .mapToLong(tb -> tb.getId() != null ? tb.getId() : 0L)
-                    .max()
-                    .orElse(0L);
-            newThietBi.setId(maxId + 1);
+            // Gọi Controller để thực hiện thêm vào DB
+            boolean success = thietBiController.createThietBi(newThietBi);
             
-            thietBiList.add(newThietBi);
-            loadTableData();
-            clearForm();
-            
-            LogoUtil.showMessageDialog(this, "Thêm thiết bị thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-            
+            if (success) {
+                loadTableData(thietBiController.getAllThietBi()); // Tải lại toàn bộ bảng
+                clearForm();
+                LogoUtil.showMessageDialog(this, "Thêm thiết bị thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                // Chọn hàng mới được thêm vào (nếu cần)
+            } else {
+                 LogoUtil.showMessageDialog(this, "Thêm thiết bị thất bại (Lỗi DB không xác định)!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (IllegalArgumentException ex) {
+            // Bắt lỗi nghiệp vụ từ createThietBiFromForm hoặc Service (Số Serial trùng)
+            LogoUtil.showMessageDialog(this, ex.getMessage(), "Lỗi Dữ liệu", JOptionPane.ERROR_MESSAGE);
         } catch (Exception ex) {
-            LogoUtil.showMessageDialog(this, ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            LogoUtil.showMessageDialog(this, "Lỗi hệ thống khi thêm: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
     
@@ -471,21 +482,30 @@ public class ThietBiPanel extends JPanel {
         }
         
         try {
+            // Lấy ID của thiết bị đang được chọn trong danh sách hiện tại
+            Long idToUpdate = thietBiList.get(selectedRow).getId(); 
+            
             ThietBi updatedThietBi = createThietBiFromForm();
+            updatedThietBi.setId(idToUpdate); // Gán lại ID cho đối tượng
+            
+            // Giữ nguyên createdAt từ đối tượng cũ
             ThietBi existingThietBi = thietBiList.get(selectedRow);
+            updatedThietBi.setCreatedAt(existingThietBi.getCreatedAt()); 
             
-            // Keep the original ID and timestamps
-            updatedThietBi.setId(existingThietBi.getId());
-            updatedThietBi.setCreatedAt(existingThietBi.getCreatedAt());
-            updatedThietBi.setUpdatedAt(LocalDateTime.now());
+            // Gọi Controller để thực hiện cập nhật vào DB
+            boolean success = thietBiController.updateThietBi(updatedThietBi);
             
-            thietBiList.set(selectedRow, updatedThietBi);
-            loadTableData();
-            
-            LogoUtil.showMessageDialog(this, "Cập nhật thiết bị thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-            
+            if (success) {
+                loadTableData(thietBiController.getAllThietBi()); // Tải lại toàn bộ bảng
+                LogoUtil.showMessageDialog(this, "Cập nhật thiết bị thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                LogoUtil.showMessageDialog(this, "Cập nhật thiết bị thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (IllegalArgumentException ex) {
+            // Bắt lỗi nghiệp vụ từ createThietBiFromForm hoặc Service (Số Serial trùng)
+            LogoUtil.showMessageDialog(this, ex.getMessage(), "Lỗi Dữ liệu", JOptionPane.ERROR_MESSAGE);
         } catch (Exception ex) {
-            LogoUtil.showMessageDialog(this, ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            LogoUtil.showMessageDialog(this, "Lỗi hệ thống khi sửa: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
     
@@ -498,122 +518,88 @@ public class ThietBiPanel extends JPanel {
         
         ThietBi thietBi = thietBiList.get(selectedRow);
         int result = LogoUtil.showConfirmDialog(
-                this,
-                "Bạn có chắc chắn muốn xóa thiết bị: " + thietBi.getSoSerial() + "?",
-                "Xác nhận xóa",
-                JOptionPane.YES_NO_OPTION
+            this,
+            "Bạn có chắc chắn muốn xóa thiết bị: " + thietBi.getSoSerial() + "?",
+            "Xác nhận xóa",
+            JOptionPane.YES_NO_OPTION
         );
         
         if (result == JOptionPane.YES_OPTION) {
-            thietBiList.remove(selectedRow);
-            loadTableData();
-            clearForm();
+            // Gọi Controller để xóa khỏi DB
+            boolean success = thietBiController.deleteThietBi(thietBi.getId());
             
-            LogoUtil.showMessageDialog(this, "Xóa thiết bị thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            if (success) {
+                loadTableData(thietBiController.getAllThietBi()); // Tải lại toàn bộ bảng
+                clearForm();
+                LogoUtil.showMessageDialog(this, "Xóa thiết bị thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                LogoUtil.showMessageDialog(this, "Xóa thiết bị thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
     
     private void handleLamMoi(ActionEvent e) {
         clearForm();
         table.clearSelection();
-        loadTableData();
+        loadTableData(thietBiController.getAllThietBi()); // Tải lại dữ liệu gốc từ DB
+        txtTimKiem.setText("");
+        cboTimKiem.setSelectedIndex(0);
     }
     
     private void handleTimKiem(ActionEvent e) {
-        String keyword = txtTimKiem.getText().trim().toLowerCase();
+        // *** ĐẢM BẢO KEYWORD KHÔNG CÓ KHOẢNG TRẮNG DƯ THỪA TRƯỚC KHI TRUYỀN ***
+        String keyword = txtTimKiem.getText().trim(); 
         String searchType = (String) cboTimKiem.getSelectedItem();
         
-        if (keyword.isEmpty()) {
-            loadTableData();
-            return;
-        }
+        // DÒNG DEBUG: Giúp bạn kiểm tra giá trị đang được truyền đi
+        System.out.println("DEBUG: Searching for '" + keyword + "' using type '" + searchType + "'");
         
-        List<ThietBi> filteredList = new ArrayList<>();
+        // Gọi Controller để thực hiện tìm kiếm
+        List<ThietBi> filteredList = thietBiController.searchThietBi(keyword, searchType);
         
-        for (ThietBi tb : thietBiList) {
-            boolean matches = false;
-            
-            switch (searchType) {
-                case "Số Serial":
-                    matches = tb.getSoSerial() != null && tb.getSoSerial().toLowerCase().contains(keyword);
-                    break;
-                case "Loại ID":
-                    matches = tb.getLoaiId() != null && tb.getLoaiId().toString().contains(keyword);
-                    break;
-                case "Trạng thái":
-                    matches = tb.getTrangThai().getDisplayName().toLowerCase().contains(keyword);
-                    break;
-                case "Ghi chú":
-                    matches = tb.getGhiChu() != null && tb.getGhiChu().toLowerCase().contains(keyword);
-                    break;
-                default: // "Tất cả"
-                    matches = (tb.getSoSerial() != null && tb.getSoSerial().toLowerCase().contains(keyword)) ||
-                             (tb.getLoaiId() != null && tb.getLoaiId().toString().contains(keyword)) ||
-                             (tb.getTrangThai().getDisplayName().toLowerCase().contains(keyword)) ||
-                             (tb.getGhiChu() != null && tb.getGhiChu().toLowerCase().contains(keyword));
-                    break;
-            }
-            
-            if (matches) {
-                filteredList.add(tb);
-            }
-        }
-        
-        // Temporarily replace the list for display
-        List<ThietBi> originalList = new ArrayList<>(thietBiList);
-        thietBiList = filteredList;
-        loadTableData();
-        thietBiList = originalList;
+        // Hiển thị kết quả tìm kiếm lên bảng
+        loadTableData(filteredList); 
     }
     
     private void handleLamSach(ActionEvent e) {
         txtTimKiem.setText("");
         cboTimKiem.setSelectedIndex(0);
-        loadTableData();
+        loadTableData(thietBiController.getAllThietBi());
     }
     
     /**
-     * Khởi tạo dữ liệu mẫu cho loại thiết bị
+     * Tải dữ liệu Loại thiết bị từ DAO và điền vào ComboBox.
      */
-    private void initializeLoaiThietBiData() {
-        loaiThietBiList = new ArrayList<>();
-        
-        // Thêm các loại thiết bị mẫu
-        loaiThietBiList.add(new LoaiThietBi(1L, "LT001", "Máy tính để bàn", "Máy tính cá nhân dành cho văn phòng"));
-        loaiThietBiList.add(new LoaiThietBi(2L, "LT002", "Laptop", "Máy tính xách tay"));
-        loaiThietBiList.add(new LoaiThietBi(3L, "LT003", "Máy in", "Thiết bị in ấn văn phòng"));
-        loaiThietBiList.add(new LoaiThietBi(4L, "LT004", "Máy chiếu", "Thiết bị trình chiếu"));
-        loaiThietBiList.add(new LoaiThietBi(5L, "LT005", "Màn hình", "Màn hình máy tính"));
-        loaiThietBiList.add(new LoaiThietBi(6L, "LT006", "Bàn phím", "Bàn phím máy tính"));
-        loaiThietBiList.add(new LoaiThietBi(7L, "LT007", "Chuột", "Chuột máy tính"));
-        loaiThietBiList.add(new LoaiThietBi(8L, "LT008", "Switch mạng", "Thiết bị chuyển mạch"));
+    private void loadLoaiThietBiData() {
+        try {
+            loaiThietBiList = loaiThietBiDAO.findAll();
+            populateLoaiThietBiComboBox();
+        } catch (Exception e) {
+             LogoUtil.showMessageDialog(this, "Lỗi tải Loại Thiết Bị: " + e.getMessage() + ". Vui lòng kiểm tra kết nối DB.", "Lỗi DB", JOptionPane.ERROR_MESSAGE);
+             loaiThietBiList = new ArrayList<>();
+        }
     }
+
+    // *** REMOVED initializeLoaiThietBiData() ***
     
     /**
      * Thiết lập giao diện bảng với padding và styling
      */
     private void setupTableAppearance() {
-        // Tăng chiều cao hàng để có padding (sẽ được tự động điều chỉnh với wrap text)
+        // ... (Code setupTableAppearance không thay đổi, đã thêm ID vào cột 0)
         table.setRowHeight(35);
-        
-        // Thiết lập font và màu sắc
         table.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 13));
         table.setBackground(Color.WHITE);
         table.setSelectionBackground(new Color(184, 207, 229));
         table.setSelectionForeground(Color.BLACK);
         table.setGridColor(new Color(230, 230, 230));
-        
-        // Thiết lập header
         table.getTableHeader().setFont(new Font(Font.SANS_SERIF, Font.BOLD, 13));
         table.getTableHeader().setBackground(new Color(240, 240, 240));
         table.getTableHeader().setForeground(Color.BLACK);
         table.getTableHeader().setPreferredSize(new Dimension(0, 35));
-        
-        // Thêm border cho cells
         table.setShowGrid(true);
         table.setIntercellSpacing(new Dimension(1, 1));
         
-        // Custom cell renderer để thêm padding và wrap text
         javax.swing.table.TableCellRenderer cellRenderer = new javax.swing.table.TableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value,
@@ -625,16 +611,13 @@ public class ThietBiPanel extends JPanel {
                 textArea.setLineWrap(true);
                 textArea.setOpaque(true);
                 
-                // Font và padding
                 textArea.setFont(table.getFont());
                 textArea.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
                 
-                // Màu sắc
                 if (isSelected) {
                     textArea.setBackground(table.getSelectionBackground());
                     textArea.setForeground(table.getSelectionForeground());
                 } else {
-                    // Màu xen kẽ cho các hàng
                     if (row % 2 == 0) {
                         textArea.setBackground(Color.WHITE);
                     } else {
@@ -643,7 +626,6 @@ public class ThietBiPanel extends JPanel {
                     textArea.setForeground(table.getForeground());
                 }
                 
-                // Điều chỉnh size cho phù hợp với cột
                 int colWidth = table.getColumnModel().getColumn(column).getWidth();
                 textArea.setSize(colWidth - 20, table.getRowHeight(row) - 10); // Trừ padding
                 
@@ -651,41 +633,33 @@ public class ThietBiPanel extends JPanel {
             }
         };
         
-        // Áp dụng renderer cho tất cả các cột
         for (int i = 0; i < table.getColumnCount(); i++) {
             table.getColumnModel().getColumn(i).setCellRenderer(cellRenderer);
         }
         
-        // Thêm listener để cập nhật row heights khi resize cột
         table.getColumnModel().addColumnModelListener(new javax.swing.event.TableColumnModelListener() {
-            @Override
-            public void columnAdded(javax.swing.event.TableColumnModelEvent e) {}
-            
-            @Override
-            public void columnRemoved(javax.swing.event.TableColumnModelEvent e) {}
-            
-            @Override
-            public void columnMoved(javax.swing.event.TableColumnModelEvent e) {}
+            @Override public void columnAdded(javax.swing.event.TableColumnModelEvent e) {}
+            @Override public void columnRemoved(javax.swing.event.TableColumnModelEvent e) {}
+            @Override public void columnMoved(javax.swing.event.TableColumnModelEvent e) {}
             
             @Override
             public void columnMarginChanged(javax.swing.event.ChangeEvent e) {
-                // Cập nhật row heights khi thay đổi kích thước cột
                 SwingUtilities.invokeLater(() -> updateRowHeights());
             }
             
-            @Override
-            public void columnSelectionChanged(javax.swing.event.ListSelectionEvent e) {}
+            @Override public void columnSelectionChanged(javax.swing.event.ListSelectionEvent e) {}
         });
         
-        // Thiết lập độ rộng cột
-        if (table.getColumnCount() >= 7) {
-            table.getColumnModel().getColumn(0).setPreferredWidth(120); // Số Serial
-            table.getColumnModel().getColumn(1).setPreferredWidth(150); // Loại thiết bị
-            table.getColumnModel().getColumn(2).setPreferredWidth(100); // Trạng thái
-            table.getColumnModel().getColumn(3).setPreferredWidth(100); // Ngày mua
-            table.getColumnModel().getColumn(4).setPreferredWidth(120); // Giá mua
-            table.getColumnModel().getColumn(5).setPreferredWidth(200); // Ghi chú
-            table.getColumnModel().getColumn(6).setPreferredWidth(150); // Ngày tạo
+        // Thiết lập độ rộng cột (Đã thêm cột ID)
+        if (table.getColumnCount() >= 8) {
+            table.getColumnModel().getColumn(0).setPreferredWidth(40);  // ID
+            table.getColumnModel().getColumn(1).setPreferredWidth(100); // Số Serial
+            table.getColumnModel().getColumn(2).setPreferredWidth(120); // Loại thiết bị
+            table.getColumnModel().getColumn(3).setPreferredWidth(90);  // Trạng thái
+            table.getColumnModel().getColumn(4).setPreferredWidth(100); // Ngày mua
+            table.getColumnModel().getColumn(5).setPreferredWidth(100); // Giá mua
+            table.getColumnModel().getColumn(6).setPreferredWidth(180); // Ghi chú
+            table.getColumnModel().getColumn(7).setPreferredWidth(120); // Ngày tạo
         }
     }
     
@@ -714,7 +688,9 @@ public class ThietBiPanel extends JPanel {
                     setText("-- Chọn loại thiết bị --");
                 } else if (value instanceof LoaiThietBi) {
                     LoaiThietBi loai = (LoaiThietBi) value;
-                    setText(loai.getTenLoai() + " (" + loai.getMaLoai() + ")");
+                    // Kiểm tra null cho maLoai (đảm bảo an toàn)
+                    String maLoai = loai.getMaLoai() != null ? loai.getMaLoai() : "N/A";
+                    setText(loai.getTenLoai() + " (" + maLoai + ")");
                 }
                 
                 return this;
